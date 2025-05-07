@@ -1,0 +1,163 @@
+/* Make sure the page takes full height */
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .sign-up-page-container {
+    display: flex;
+    height: 100vh;
+  }
+  
+  .sign-up-background-container {
+    width: 60%;
+    background-color:#9dc7e0;
+  }
+  
+  /* Left Side - Background Image */
+  .sign-up-image {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 70%;
+    width: 70%;
+    margin-left: 15%;
+    margin-top: 15%;
+  }
+  
+  /* Right Side - Sign-Up Form */
+  .sign-up-form {
+    width: 80%;
+  }
+  
+  .sign-up-form-container {
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: left;
+    background-color: white;
+    padding: 50px;
+    box-shadow: -2px 0px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .sign-up-logo {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .sign-up-logo-img {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .sign-up-company-name {
+    font-size: 1.5rem;
+    color: #1e3a8a;
+  }
+  
+  .sign-up-form  h3 {
+    font-size: 27.154px;
+    color: rgb(1, 98, 232);
+    text-align: left;
+  }
+  
+  .sign-up-form label {
+    color: rgb(3, 27, 78);
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+  }
+  
+  .sign-up-form input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    margin-top: 5px;
+  }
+  
+  input:focus {
+    border: 1px solid #d1d5db;
+    outline: none; 
+  }
+  
+  .sign-up-button {
+    max-width: 999px; /* Set a fixed max width */
+    width: 105%;
+    background-color: rgb(1, 98, 232);
+    border-radius: 3px;
+    border-color: rgb(1, 98, 232);
+    color: white;
+    cursor: pointer;
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    padding: 10px;
+    text-align: center;
+    transition: background-color 0.15s ease-in-out;
+  }
+  
+  .sign-up-button:hover {
+    background-color: rgb(0, 85, 200); /* Slightly darker shade on hover */
+  }
+  
+  a {
+    color: rgb(59, 72, 99);
+    text-decoration: none;
+    font-size: 14px;
+    font-family: Roboto, sans-serif;
+    font-weight: bolder;
+  }
+  
+  a:hover {
+    text-decoration: underline;
+  }
+  
+  .another-option {
+    margin-top: 40px;
+    font-size: 14px;
+    font-family: Roboto, sans-serif;
+  }
+  
+
+
+  /* Responsive Design */
+  @media (max-width: 750px) {
+    .sign-up-background-container {
+      display: none;
+    }
+    .sign-up-form-container {
+      width: 100%;
+      box-shadow: none;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .sign-up-form {
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 2px;
+      padding: 30px;
+    }
+  
+    .sign-up-logo-img {
+      width: 50px;
+      height: 50px;
+    }
+  
+    .sign-up-company-name {
+      font-size: 1.2rem;
+    }
+  
+    .sign-up-logo {
+      margin-bottom: 20px;
+    }
+  
+    .sign-up-form-container {
+      width: 80%;
+      padding: 2%;
+    }
+  }
+  
