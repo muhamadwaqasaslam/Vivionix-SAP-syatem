@@ -17,6 +17,13 @@ import LoginPage from './LoginPage';
 import SignUpPage from './SignUp';
 import ForgetPassword from './Forgetpassword';
 
+// Store Module Components
+import StockList from './components/Table/StockList';
+import StockLedger from './components/Table/StockLedger';
+import CreateDC from './components/registration/CreateDC';
+import ListOfDC from './components/Table/ListOfDC';
+import PendingApprovals from './components/Table/PendingApprovals';
+
 function App() {
   return (
     <BrowserRouter>
@@ -41,6 +48,13 @@ function App() {
           <Route path="product-table" element={<ProductTable />} />
           <Route path="vendor-registration" element={<VendorRegistration />} />
           <Route path="vendor-table" element={<VendorTable />} />
+          
+          {/* Store Module Routes */}
+          <Route path="stock-list" element={<StockList />} />
+          <Route path="stock-ledger" element={<StockLedger />} />
+          <Route path="create-dc" element={<CreateDC />} />
+          <Route path="list-of-dc" element={<ListOfDC />} />
+          <Route path="pending-approvals" element={<PendingApprovals />} />
         </Route>
       </Routes>
     </BrowserRouter>

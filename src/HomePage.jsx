@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import {
   FaSignOutAlt,
   FaMoon,
@@ -13,7 +13,8 @@ import {
   FaBell,
   FaExpand,
   FaEdit,
-  FaCogs
+  FaCogs,
+  FaWarehouse
 } from "react-icons/fa";
 
 import { AlignLeft, Search } from "lucide-react";
@@ -35,6 +36,13 @@ import CustomerTable from './components/Table/CustomerTable';
 import ProductTable from './components/Table/ProductTable';
 import VendorTable from './components/Table/VendorTable';
 
+// Store Components
+import StockList from "./components/Table/StockList";
+import StockLedger from "./components/Table/StockLedger";
+import CreateDC from "./components/registration/CreateDC";
+import ListOfDC from "./components/Table/ListOfDC";
+import PendingApprovals from "./components/Table/PendingApprovals";
+
 import { logout } from './utils/api';
 
 const HomePage = () => {
@@ -46,7 +54,6 @@ const HomePage = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const navigate = useNavigate();
-  const location = useLocation();
 
   const userData = JSON.parse(localStorage.getItem('user') || '{}');
   const userInitial = userData.employee_name ? userData.employee_name.charAt(0).toUpperCase() : '?';
@@ -156,6 +163,16 @@ const HomePage = () => {
         return <VendorRegistration />;
       case "Vendor Table":
         return <VendorTable />;
+      case "Stock List":
+        return <StockList />;
+      case "Stock Ledger":
+        return <StockLedger />;
+      case "Create DC":
+        return <CreateDC />;
+      case "List of DC":
+        return <ListOfDC />;
+      case "Pending Approvals":
+        return <PendingApprovals />;
       default:
         return <Dashboard />;
     }
@@ -298,6 +315,40 @@ const HomePage = () => {
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Product Table")}>
                 <Link to="/home/product-table" className="sidebar-link">Product List</Link>
+              </div>
+            </div>
+          )}
+
+          {/* Store Section */}
+          <div className="sidebar-item" onClick={() => toggleDropdown("Store")}>
+            <FaWarehouse size={14} />
+            {!isSidebarCollapsed && <span className="items">Store</span>}
+            {!isSidebarCollapsed && (
+              <span style={{ marginLeft: "62px" }}>
+                {activeDropdown === "Store" ? (
+                  <FaChevronDown className="dropdown-icon" />
+                ) : (
+                  <FaChevronRight className="dropdown-icon" />
+                )}
+              </span>
+            )}
+          </div>
+          {activeDropdown === "Store" && (
+            <div className="sidebar-submenu">
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Stock List")}>
+                <Link to="/home/stock-list" className="sidebar-link">Stock List</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Stock Ledger")}>
+                <Link to="/home/stock-ledger" className="sidebar-link">Stock Ledger</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Create DC")}>
+                <Link to="/home/create-dc" className="sidebar-link">Create DC</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("List of DC")}>
+                <Link to="/home/list-of-dc" className="sidebar-link">List of DC</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Pending Approvals")}>
+                <Link to="/home/pending-approvals" className="sidebar-link">Pending Approvals</Link>
               </div>
             </div>
           )}

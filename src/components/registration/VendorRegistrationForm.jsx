@@ -185,13 +185,13 @@ const VendorRegistrationForm = () => {
     // Auto-fill 'registered_by' in representative
     setRepresentative(prev => ({
       ...prev,
-      registered_by: userInfo.employee_name || userInfo.employee_id || 'default_user',
+      registered_by:  userInfo.employee_id || 'default_user',
     }));
   
     // If you want vendor to be updated too (optional):
     setVendor(prev => ({
       ...prev,
-      registered_by: userInfo.employee_name || userInfo.employee_id || 'default_user',
+      registered_by: userInfo.employee_id || 'default_user',
     }));
   
   }, []);

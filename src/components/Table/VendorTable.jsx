@@ -35,7 +35,7 @@ const VendorTable = () => {
   });
   const [editRepresentativeForm, setEditRepresentativeForm] = useState({
     name: "",
-    designation: "",
+    deisgnation: "",
     email: "",
     contact_number: "",
     contact_number2: "",
@@ -43,6 +43,7 @@ const VendorTable = () => {
     visitingCard: null
   });
   const itemsPerPage = 10;
+  const [registeredBy, setRegisteredBy] = useState("");
 
   useEffect(() => {
     const fetchVendors = async () => {
@@ -64,7 +65,13 @@ const VendorTable = () => {
     fetchVendors();
   }, []);
 
-
+  useEffect(() => {
+    // Adjust the key according to your login logic
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user && user.employee_name) {
+      setRegisteredBy(user.employee_name);
+    }
+  }, []);
 
   const handleShowRepresentative = (representative) => {
     setSelectedRepresentative(representative);
@@ -101,9 +108,11 @@ const VendorTable = () => {
       type: '',
       website: '',
       company_phone_number: '',
-      address: ''
+      address: '',
+      productcatalog:''
     });
   };
+
 
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
@@ -203,7 +212,7 @@ const VendorTable = () => {
   const handleShowEditRepresentative = () => {
     setEditRepresentativeForm({
       name: selectedRepresentative.name,
-      designation: selectedRepresentative.designation,
+      deisgnation: selectedRepresentative.deisgnation,
       email: selectedRepresentative.email,
       contact_number: selectedRepresentative.contact_number,
       contact_number2: selectedRepresentative.contact_number2,
@@ -213,11 +222,12 @@ const VendorTable = () => {
     setShowEditRepresentativeModal(true);
   };
 
+
   const handleCloseEditRepresentativeModal = () => {
     setShowEditRepresentativeModal(false);
     setEditRepresentativeForm({
       name: "",
-      designation: "",
+      deisgnation: "",
       email: "",
       contact_number: "",
       contact_number2: "",
@@ -312,6 +322,7 @@ const VendorTable = () => {
 
 
   
+  
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -351,6 +362,7 @@ const VendorTable = () => {
               <th scope="col">Phone</th>
               <th scope="col">Type</th>
               <th scope="col">Website</th>
+              <th scope="col">Product Catalog</th>
               <th scope="col">Representative</th>
               <th scope="col">Actions</th>
             </tr>
@@ -380,6 +392,20 @@ const VendorTable = () => {
                     </a>
                   ) : (
                     'No Website'
+                  )}
+                </td>
+                <td>
+                  {vendor.productcatalog ? (
+                    <a
+                      href={vendor.productcatalog}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-link btn-sm p-0"
+                    >
+                      View Catalog
+                    </a>
+                  ) : (
+                    <span className="text-muted">No Catalog</span>
                   )}
                 </td>
                 <td>
@@ -475,10 +501,10 @@ const VendorTable = () => {
                   />
                 </Col>
                 <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Designation</Form.Label>
+                  <Form.Label className="form-label small">deisgnation</Form.Label>
                   <Form.Control
                     type="text"
-                    value={selectedRepresentative.designation}
+                    value={selectedRepresentative.deisgnation}
                     className="form-control form-control-sm"
                     readOnly
                   />
@@ -574,11 +600,11 @@ const VendorTable = () => {
                 />
               </Col>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Designation</Form.Label>
+                <Form.Label className="form-label small">deisgnation</Form.Label>
                 <Form.Control
                   type="text"
-                  name="designation"
-                  value={editRepresentativeForm.designation}
+                  name="deisgnation"
+                  value={editRepresentativeForm.deisgnation}
                   onChange={handleEditRepresentativeFormChange}
                   className="form-control form-control-sm"
                 />
