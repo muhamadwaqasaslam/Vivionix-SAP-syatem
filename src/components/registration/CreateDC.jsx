@@ -9,6 +9,8 @@ const CreateDC = () => {
         customerName: '',
         orderNo: '',
         orderDate: '',
+        orderDeliveryDate: '',
+        comments: '',
         products: [
             {
                 srNo: 1,
@@ -144,6 +146,7 @@ const CreateDC = () => {
             ...prev,
             orderNo: orderId,
             orderDate: selectedOrder ? selectedOrder.orderDate : '',
+            orderDeliveryDate: '',
             products: [
                 {
                     srNo: 1,
@@ -247,6 +250,8 @@ const CreateDC = () => {
             customerName: '',
             orderNo: '',
             orderDate: '',
+            orderDeliveryDate: '',
+            comments: '',
             products: [{
                 srNo: 1,
                 productName: '',
@@ -313,7 +318,16 @@ const CreateDC = () => {
                                     <div className="invalid-feedback">{validationErrors.customerName}</div>
                                 )}
                             </Col>
-                            <Col md={6}></Col>
+                            <Col md={6} className="mb-2">
+                                <Form.Label className="form-label small">Order Delivery Date</Form.Label>
+                                <Form.Control
+                                    type="date"
+                                    value={formData.orderDeliveryDate}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, orderDeliveryDate: e.target.value }))}
+                                    className="form-control form-control-sm"
+                                    required
+                                />
+                            </Col>
                         </Row>
                         <Row>
                             <Col md={6} className="mb-2">
@@ -432,6 +446,20 @@ const CreateDC = () => {
                                 Add Product
                             </Button>
                         </div>
+
+                        <Row className="mt-3">
+                            <Col md={12} className="mb-3">
+                                <Form.Label className="form-label small">Comments</Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={3}
+                                    value={formData.comments}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, comments: e.target.value }))}
+                                    placeholder="Enter any additional comments here..."
+                                    className="form-control form-control-sm"
+                                />
+                            </Col>
+                        </Row>
 
                         <Row className="mt-3">
                             <Col md={12} className="text-center">

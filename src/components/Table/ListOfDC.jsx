@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Button, Modal, Form, Alert, Row, Col } from 'react-bootstrap';
+import { Table, Button, Modal, Form, Alert} from 'react-bootstrap';
 
 const ListOfDC = () => {
   // Mock data for DCs
@@ -46,6 +46,7 @@ const ListOfDC = () => {
   const [receivingFile, setReceivingFile] = useState(null);
   const [alert, setAlert] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isReplacing, setIsReplacing] = useState(false);
 
   // Filtered DCs based on search
   const filteredDCs = dcs.filter(dc =>
@@ -57,12 +58,22 @@ const ListOfDC = () => {
   const handleShowUpload = (dc) => {
     setSelectedDC(dc);
     setShowUploadModal(true);
+    setIsReplacing(false);
   };
+
+  const handleShowReplace = (dc) => {
+    setSelectedDC(dc);
+    setShowUploadModal(true);
+    setIsReplacing(true);
+  };
+
   const handleCloseUpload = () => {
     setShowUploadModal(false);
     setSelectedDC(null);
     setReceivingFile(null);
+    setIsReplacing(false);
   };
+
   const handleShowView = (dc) => {
     setSelectedDC(dc);
     setShowViewModal(true);
@@ -84,7 +95,10 @@ const ListOfDC = () => {
           : dc
       )
     );
-    setAlert({ type: 'success', message: 'Receiving uploaded and status set to completed.' });
+    setAlert({ 
+      type: 'success', 
+      message: isReplacing ? 'Receiving document replaced successfully.' : 'Receiving uploaded and status set to completed.' 
+    });
     handleCloseUpload();
   };
 
@@ -157,12 +171,12 @@ const ListOfDC = () => {
       {/* Upload Receiving Modal */}
       <Modal show={showUploadModal} onHide={handleCloseUpload} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Upload Receiving</Modal.Title>
+          <Modal.Title>{isReplacing ? 'Replace Receiving' : 'Upload Receiving'}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form onSubmit={handleUploadSubmit}>
             <Form.Group controlId="receivingFile">
-              <Form.Label>Select Receiving File</Form.Label>
+              <Form.Label>{isReplacing ? 'Select New Receiving File' : 'Select Receiving File'}</Form.Label>
               <Form.Control type="file" onChange={handleReceivingFileChange} required />
             </Form.Group>
             <div className="text-end mt-3">
@@ -170,7 +184,7 @@ const ListOfDC = () => {
                 Cancel
               </Button>
               <Button variant="primary" type="submit" disabled={!receivingFile}>
-                Upload
+                {isReplacing ? 'Replace' : 'Upload'}
               </Button>
             </div>
           </Form>
@@ -185,9 +199,17 @@ const ListOfDC = () => {
           {selectedDC && selectedDC.receiving ? (
             <div>
               <p><strong>Receiving File:</strong> {selectedDC.receiving}</p>
-              <Button variant="primary" href={`#`} target="_blank">
-                Download/View
-              </Button>
+              <div className="d-flex gap-2">
+                <Button variant="primary" href={`#`} target="_blank">
+                  Download/View
+                </Button>
+                <Button variant="warning" onClick={() => {
+                  handleCloseView();
+                  handleShowReplace(selectedDC);
+                }}>
+                  Replace Document
+                </Button>
+              </div>
             </div>
           ) : (
             <p>No receiving file available.</p>
