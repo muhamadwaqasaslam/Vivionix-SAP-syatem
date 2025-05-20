@@ -32,7 +32,7 @@ const CustomerRegistrationForm = () => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     // Customer Name validation
     if (!customer.customername.trim()) {
       errors.customername = 'Customer name is required';
@@ -189,7 +189,7 @@ const CustomerRegistrationForm = () => {
   return (
     <div className="registration-container">
       <h3 className="registration-heading">Customer Registration</h3>
-      
+
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">Customer registered successfully!</div>}
 
@@ -227,7 +227,7 @@ const CustomerRegistrationForm = () => {
               </Col>
 
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Company Phone Number</Form.Label>
+                <Form.Label className="form-label small">Contact Number</Form.Label>
                 <Form.Control
                   type="tel"
                   name="company_phone_number"
@@ -241,16 +241,34 @@ const CustomerRegistrationForm = () => {
                 )}
               </Col>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Website</Form.Label>
+                <Form.Label className="form-label small">City</Form.Label>
                 <Form.Control
                   type="url"
-                  name="website"
-                  value={customer.website}
+                  name="city"
+                  value={customer.city}
                   onChange={handleCustomerChange}
-                  className={`form-control form-control-sm ${validationErrors.website ? 'is-invalid' : ''}`}
+                  className={`form-control form-control-sm ${validationErrors.city ? 'is-invalid' : ''}`}
                 />
-                {validationErrors.website && (
-                  <div className="invalid-feedback">{validationErrors.website}</div>
+                {validationErrors.city && (
+                  <div className="invalid-feedback">{validationErrors.city}</div>
+                )}
+              </Col>
+
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Category</Form.Label>
+                <Form.Select
+                  name="category"
+                  value={customer.category}
+                  onChange={handleCustomerChange}
+                  className={`form-control form-control-sm search-panel small ${validationErrors.category ? 'is-invalid' : ''}`}
+                  required
+                >
+                  <option value="" className="small">Select Category</option>
+                  <option value="private" className="small">Private</option>
+                  <option value="public" className="small">Public</option>
+                </Form.Select>
+                {validationErrors.category && (
+                  <div className="invalid-feedback">{validationErrors.category}</div>
                 )}
               </Col>
 
@@ -264,10 +282,8 @@ const CustomerRegistrationForm = () => {
                   required
                 >
                   <option value="" className="small">Select Type</option>
-                  <option value="retail" className="small">Retail</option>
-                  <option value="wholesale" className="small">Wholesale</option>
-                  <option value="distributor" className="small">Distributor</option>
-                  <option value="manufacturer" className="small">Manufacturer</option>
+                  <option value="hospital" className="small">Hospital</option>
+                  <option value="clinic" className="small">Clinic</option>
                 </Form.Select>
                 {validationErrors.type && (
                   <div className="invalid-feedback">{validationErrors.type}</div>
@@ -275,11 +291,32 @@ const CustomerRegistrationForm = () => {
               </Col>
 
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Product Catalog</Form.Label>
+                <Form.Label className="form-label small">Capacity</Form.Label>
+                <Form.Select
+                  name="capacity"
+                  value={customer.capacity}
+                  onChange={handleCustomerChange}
+                  className={`form-control form-control-sm search-panel small ${validationErrors.capacity ? 'is-invalid' : ''}`}
+                  required
+                >
+                  <option value="" className="small">Select Capacity</option>
+                  <option value="high-end" className="small">High End</option>
+                  <option value="medium" className="small">Medium</option>
+                  <option value="low" className="small">Low</option>
+                </Form.Select>
+                {validationErrors.capacity && (
+                  <div className="invalid-feedback">{validationErrors.capacity}</div>
+                )}
+              </Col>
+
+
+
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Contarct Agreement</Form.Label>
                 <Form.Control
                   type="file"
-                  name="productcatalog"
-                  onChange={(e) => handleFileChange(e, 'productcatalog')}
+                  name="contract_agreement"
+                  onChange={(e) => handleFileChange(e, 'contract_agreement')}
                   className="form-control form-control-sm"
                 />
               </Col>

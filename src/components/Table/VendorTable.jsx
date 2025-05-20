@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { debounce } from 'lodash';
+import React, { useState, useEffect, useRef } from 'react';
+import { RiFilter3Line } from 'react-icons/ri';
 
-import { Card, Row, Col, Form, Button, Modal, Table, Alert } from 'react-bootstrap';
+import { Row, Col, Form, Button, Modal } from 'react-bootstrap';
 import './EmployeeTable.css';
 
 const VendorTable = () => {
@@ -9,8 +9,6 @@ const VendorTable = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchedVendor, setSearchedVendor] = useState(null);
-  const [searchError, setSearchError] = useState(null);
   const [filteredVendors, setFilteredVendors] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -19,7 +17,6 @@ const VendorTable = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showEditRepresentativeModal, setShowEditRepresentativeModal] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState(null);
-  const [employees, setEmployees] = useState([]);
   const [editForm, setEditForm] = useState({
     category: "",
     type: "",
@@ -30,20 +27,30 @@ const VendorTable = () => {
     address: "",
     city: "",
     registered_by: "",
-    productcatalog: null,// Set the existing product catalog
+    productcatalog: null,
+    iso: null,
+    // Set the existing product catalog
 
   });
   const [editRepresentativeForm, setEditRepresentativeForm] = useState({
     name: "",
-    deisgnation: "",
+    designation: "",
     email: "",
     contact_number: "",
     contact_number2: "",
     registered_by: "",
     visitingCard: null
   });
+  const [showAddRepresentativeModal, setShowAddRepresentativeModal] = useState(false);
   const itemsPerPage = 10;
-  const [registeredBy, setRegisteredBy] = useState("");
+
+  const [showSearch, setShowSearch] = useState(false);
+  const [pendingSearchTerm, setPendingSearchTerm] = useState("");
+
+  const [vendorIdSearch, setVendorIdSearch] = useState("");
+  const [filterFields, setFilterFields] = useState({ name: "", email: "", type: "" });
+
+  const filterFormRef = useRef(null);
 
   useEffect(() => {
     const fetchVendors = async () => {
@@ -66,12 +73,17 @@ const VendorTable = () => {
   }, []);
 
   useEffect(() => {
-    // Adjust the key according to your login logic
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user && user.employee_name) {
-      setRegisteredBy(user.employee_name);
+    if (!showSearch) return;
+    function handleClickOutside(event) {
+      if (filterFormRef.current && !filterFormRef.current.contains(event.target)) {
+        setShowSearch(false);
+      }
     }
-  }, []);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSearch]);
 
   const handleShowRepresentative = (representative) => {
     setSelectedRepresentative(representative);
@@ -108,11 +120,9 @@ const VendorTable = () => {
       type: '',
       website: '',
       company_phone_number: '',
-      address: '',
-      productcatalog:''
+      address: ''
     });
   };
-
 
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
@@ -123,58 +133,44 @@ const VendorTable = () => {
   };
 
 
-  const currentVendors = searchTerm ? filteredVendors : vendors;
-
-  const fetchVendorById = async (vendorId) => {
-    try {
-      const accessToken = localStorage.getItem("access_token");
-      if (!accessToken) throw new Error("You're not logged in.");
-
-      const response = await fetch(`https://my.vivionix.com/vendors/retrieve/${vendorId}/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Vendor not found.`);
-      }
-
-      const data = await response.json();
-      setSearchedVendor(data);
-      setSearchError(null);
-    } catch (error) {
-      setSearchedVendor(null);
-      setSearchError(error.message);
+  const handleFilterIconClick = () => {
+    setShowSearch((prev) => !prev);
+    // Reset filter fields when opening the filter
+    if (!showSearch) {
+      setFilterFields({ name: "", email: "", type: "" });
+      setFilteredVendors(vendors);
     }
   };
 
-  const debouncedFetchVendor = useCallback(
-    debounce((value) => {
-      if (value) fetchVendorById(value);
-      else {
-        setSearchedVendor(null);
-        setSearchError(null);
-      }
-    }, 500), // 500ms delay
-    []
-  );
+  const handleFilterFieldChange = (e) => {
+    const { name, value } = e.target;
+    setFilterFields((prev) => ({ ...prev, [name]: value }));
+    
+    // Apply real-time filtering as user types
+    const newFilters = { ...filterFields, [name]: value };
+    const matched = vendors.filter((vendor) =>
+      (!newFilters.name || (vendor.vendorname && vendor.vendorname.toLowerCase().includes(newFilters.name.toLowerCase()))) &&
+      (!newFilters.email || (vendor.company_email && vendor.company_email.toLowerCase().includes(newFilters.email.toLowerCase()))) &&
+      (!newFilters.type || (vendor.type && vendor.type.toLowerCase().includes(newFilters.type.toLowerCase())))
+    );
+    setFilteredVendors(matched);
+  };
 
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-
-    if (value.trim() === "") {
-      setFilteredVendors([]);
+  const handleApplySearch = () => {
+    const { name, email, type } = filterFields;
+    if (!name && !email && !type) {
+      setFilteredVendors(vendors);
+      setSearchTerm("");
     } else {
       const matched = vendors.filter((vendor) =>
-        vendor.vendor_id.toString().startsWith(value.trim())
+        (!name || (vendor.vendorname && vendor.vendorname.toLowerCase().includes(name.toLowerCase()))) &&
+        (!email || (vendor.company_email && vendor.company_email.toLowerCase().includes(email.toLowerCase()))) &&
+        (!type || (vendor.type && vendor.type.toLowerCase().includes(type.toLowerCase())))
       );
       setFilteredVendors(matched);
+      setSearchTerm(name || email || type);
     }
+    setShowSearch(false);
   };
 
 
@@ -212,7 +208,7 @@ const VendorTable = () => {
   const handleShowEditRepresentative = () => {
     setEditRepresentativeForm({
       name: selectedRepresentative.name,
-      deisgnation: selectedRepresentative.deisgnation,
+      designation: selectedRepresentative.designation,
       email: selectedRepresentative.email,
       contact_number: selectedRepresentative.contact_number,
       contact_number2: selectedRepresentative.contact_number2,
@@ -222,12 +218,11 @@ const VendorTable = () => {
     setShowEditRepresentativeModal(true);
   };
 
-
   const handleCloseEditRepresentativeModal = () => {
     setShowEditRepresentativeModal(false);
     setEditRepresentativeForm({
       name: "",
-      deisgnation: "",
+      designation: "",
       email: "",
       contact_number: "",
       contact_number2: "",
@@ -316,17 +311,71 @@ const VendorTable = () => {
   // });
 
   const totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
   // const currentVendors = filteredVendors.slice(startIndex, endIndex);
 
 
-  
   
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
+
+  const handleShowAddRepresentative = () => {
+    setEditRepresentativeForm({
+      name: '',
+      designation: '',
+      email: '',
+      contact_number: '',
+      contact_number2: '',
+      registered_by: '',
+      visitingCard: null
+    });
+    setShowAddRepresentativeModal(true);
+  };
+
+  const handleCloseAddRepresentativeModal = () => {
+    setShowAddRepresentativeModal(false);
+  };
+
+  const handleAddRepresentativeSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedVendor) return;
+    setVendors(prevVendors =>
+      prevVendors.map(vendor => {
+        if (vendor.vendor_id === selectedVendor.vendor_id) {
+          const newRep = {
+            ...editRepresentativeForm,
+            id: Date.now(), 
+            visitingcard: editRepresentativeForm.visitingCard
+          };
+          return {
+            ...vendor,
+            representatives_name: vendor.representatives_name
+              ? [...vendor.representatives_name, newRep]
+              : [newRep]
+          };
+        }
+        return vendor;
+      })
+    );
+    setShowAddRepresentativeModal(false);
+  };
+
+  const handleVendorIdSearch = (e) => {
+    const value = e.target.value;
+    setVendorIdSearch(value);
+    if (value.trim() === "") {
+      setFilteredVendors(vendors);
+    } else {
+      const matched = vendors.filter((vendor) =>
+        vendor.vendor_id && vendor.vendor_id.toString().toLowerCase().includes(value.trim().toLowerCase())
+      );
+      setFilteredVendors(matched);
+    }
+  };
+
+  // Update currentVendors to use filteredVendors when filter is active
+  const currentVendors = (vendorIdSearch || showSearch || filteredVendors.length > 0) ? filteredVendors : vendors;
 
   if (loading) {
     return <div className="loading">Loading...</div>;
@@ -341,14 +390,73 @@ const VendorTable = () => {
       <h3 className="table-heading">Vendor Management</h3>
 
       <div className="table-header">
-        <div className="search-container">
+        <div className="search-container" style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          position: 'relative',
+          flexWrap: 'nowrap',
+          gap: '8px'
+        }}>
           <input
             type="text"
             className="form-control search-input"
-            placeholder="Search by vendor ID..."
-            value={searchTerm}
-            onChange={handleSearch}
+            placeholder="Search by Vendor ID..."
+            value={vendorIdSearch}
+            onChange={handleVendorIdSearch}
+            style={{
+              marginRight: '8px',
+              '@media (max-width: 576px)': {
+                width: '100%',
+                marginRight: '0'
+              }
+            }}
           />
+          <Button 
+            variant="outline-secondary" 
+            onClick={handleFilterIconClick} 
+            style={{ 
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <RiFilter3Line size={20} />
+          </Button>
+          {showSearch && (
+            <div
+              ref={filterFormRef}
+              className="filter-dropdown"
+            >
+              <input
+                type="text"
+                name="name"
+                className="form-control search-input"
+                placeholder="Name"
+                value={filterFields.name}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="email"
+                className="form-control search-input"
+                placeholder="Email"
+                value={filterFields.email}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="type"
+                className="form-control search-input"
+                placeholder="Type"
+                value={filterFields.type}
+                onChange={handleFilterFieldChange}
+              />
+              <Button variant="primary" onClick={handleApplySearch} style={{ width: '100%' }}>
+                Apply
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -363,84 +471,103 @@ const VendorTable = () => {
               <th scope="col">Type</th>
               <th scope="col">Website</th>
               <th scope="col">Product Catalog</th>
+              <th scope="col">IOS</th>
               <th scope="col">Representative</th>
               <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
-
-            {currentVendors.map((vendor) => (
-              <tr key={vendor.vendor_id}>
-                <td>{vendor.vendor_id}</td>
-                <td>{vendor.vendorname}</td>
-                <td>{vendor.company_email}</td>
-                <td>{vendor.company_phone_number}</td>
-                <td>
-                  <span className="badge bg-info-transparent">
-                    {vendor.type}
-                  </span>
-                </td>
-                <td>
-                  {vendor.website ? (
-                    <a
-                      href={vendor.website.startsWith('http') ? vendor.website : `https://${vendor.website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary"
-                    >
-                      {vendor.website}
-                    </a>
-                  ) : (
-                    'No Website'
-                  )}
-                </td>
-                <td>
-                  {vendor.productcatalog ? (
-                    <a
-                      href={vendor.productcatalog}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-link btn-sm p-0"
-                    >
-                      View Catalog
-                    </a>
-                  ) : (
-                    <span className="text-muted">No Catalog</span>
-                  )}
-                </td>
-                <td>
-                  {vendor.representatives_name && vendor.representatives_name.length > 0 ? (
-                    <button
-                      className="btn btn-link btn-sm p-0"
-                      onClick={() => handleShowRepresentative(vendor.representatives_name[0])}
-                    >
-                      {vendor.representatives_name[0].name}
-                    </button>
-                  ) : (
-                    'No Representative'
-                  )}
-                </td>
-                <td>
-                  <div className="hstack gap-2 fs-15">
-                    <button
-                      className="btn btn-icon btn-sm btn-primary"
-                      title="Edit"
-                      onClick={() => handleShowEditModal(vendor)}
-                    >
-                      <i className="ri-edit-line"></i>
-                    </button>
-                    <button
-                      className="btn btn-icon btn-sm btn-danger"
-                      title="Delete"
-                      onClick={() => handleDeleteVendor(vendor.vendor_id)}
-                    >
-                      <i className="ri-delete-bin-line"></i>
-                    </button>
-
-                  </div>
-                </td>
+            {currentVendors.length === 0 ? (
+              <tr>
+                <td colSpan="10" style={{ textAlign: 'center' }}>No vendors found</td>
               </tr>
-            ))}
+            ) : (
+              currentVendors.map((vendor) => (
+                <tr key={vendor.vendor_id}>
+                  <td>{vendor.vendor_id}</td>
+                  <td>{vendor.vendorname}</td>
+                  <td>{vendor.company_email}</td>
+                  <td>{vendor.company_phone_number}</td>
+                  <td>
+                    <span className="badge bg-info-transparent">
+                      {vendor.type}
+                    </span>
+                  </td>
+                  <td>
+                    {vendor.website ? (
+                      <a
+                        href={vendor.website.startsWith('http') ? vendor.website : `https://${vendor.website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary"
+                      >
+                        {vendor.website}
+                      </a>
+                    ) : (
+                      'No Website'
+                    )}
+                  </td>
+                  <td>
+                    {vendor.productcatalog ? (
+                      <a
+                        href={vendor.productcatalog}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary"
+                      >
+                        {vendor.productcatalog.split('/').pop()}
+                      </a>
+                    ) : (
+                      'No Product Catalog'
+                    )}
+                  </td>
+                  <td>
+                    {vendor.iso ? (
+                      <a
+                        href={vendor.iso}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary"
+                      >
+                        {vendor.iso.split('/').pop()}
+                      </a>
+                    ) : (
+                      'No ISO'
+                    )}
+                  </td>
+                  <td>
+                    {vendor.representatives_name && vendor.representatives_name.length > 0 ? (
+                      <button
+                        className="btn btn-sm btn-info"
+                        onClick={() => handleShowRepresentative(vendor.representatives_name[0])}
+                      >
+                        View
+                      </button>
+                    ) : (
+                      'No Representative'
+                    )}
+                  </td>
+                  <td>
+                    <div className="hstack gap-2 fs-15">
+                      <button
+                        className="btn btn-icon btn-sm btn-primary"
+                        title="Edit"
+                        onClick={() => handleShowEditModal(vendor)}
+                      >
+                        <i className="ri-edit-line"></i>
+                      </button>
+                      <button
+                        className="btn btn-icon btn-sm btn-danger"
+                        title="Delete"
+                        onClick={() => handleDeleteVendor(vendor.vendor_id)}
+                      >
+                        <i className="ri-delete-bin-line"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -483,96 +610,85 @@ const VendorTable = () => {
       </div>
 
       {/* Representative Modal */}
-      <Modal show={showRepresentativeModal} onHide={handleCloseRepresentativeModal} centered size="lg">
+      <Modal show={showRepresentativeModal} onHide={handleCloseRepresentativeModal} centered size="lg" >
         <Modal.Header closeButton>
           <Modal.Title>Representative Information</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body >
           {selectedRepresentative && (
-            <div>
-              <Row>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={selectedRepresentative.name}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">deisgnation</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={selectedRepresentative.deisgnation}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-              </Row>
-              <Row>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Email</Form.Label>
-                  <Form.Control
-                    type="email"
-                    value={selectedRepresentative.email}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Contact Number</Form.Label>
-                  <Form.Control
-                    type="tel"
-                    value={selectedRepresentative.contact_number}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-              </Row>
-              <Row>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Alternative Contact</Form.Label>
-                  <Form.Control
-                    type="tel"
-                    value={selectedRepresentative.contact_number2}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Registered By</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={selectedRepresentative.registered_by_name}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-              </Row>
-              <Row>
-                <Col md={12} className="mb-2">
-                  <Form.Label className="form-label small">Visiting Card</Form.Label>
-                  {selectedRepresentative.visitingcard ? (
-                    <a
-                      href={selectedRepresentative.visitingcard}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-link btn-sm p-0"
-                    >
-                      View Visiting Card
-                    </a>
-                  ) : (
-                    <span className="text-muted">No visiting card available</span>
-                  )}
-                </Col>
-              </Row>
+            <div className="table-responsive">
+              <table className="table text-nowrap">
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Designation</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Contact</th>
+                    <th scope="col">Alt. Contact</th>
+                    <th scope="col">Registered By</th>
+                    <th scope="col">Visiting Card</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{selectedRepresentative.name}</td>
+                    <td>
+                      <span className="badge bg-info-transparent">
+                        {selectedRepresentative.designation}
+                      </span>
+                    </td>
+                    <td>{selectedRepresentative.email}</td>
+                    <td>{selectedRepresentative.contact_number}</td>
+                    <td>{selectedRepresentative.contact_number2 || 'N/A'}</td>
+                    <td>{selectedRepresentative.registered_by_name}</td>
+                    <td>
+                      {selectedRepresentative.visitingcard ? (
+                        <a
+                          href={selectedRepresentative.visitingcard}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-link btn-sm p-0"
+                        >
+                          {selectedRepresentative.visitingcard.split('/').pop()}
+                        </a>
+                      ) : (
+                        <span className="text-muted">No card</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="hstack gap-2 fs-15">
+                        <button
+                          className="btn btn-icon btn-sm btn-primary"
+                          title="Edit"
+                          onClick={handleShowEditRepresentative}
+                        >
+                          <i className="ri-edit-line"></i>
+                        </button>
+                        <button
+                          className="btn btn-icon btn-sm btn-danger"
+                          title="Delete"
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this representative?')) {
+                              // Add delete functionality here
+                              console.log('Delete representative:', selectedRepresentative.id);
+                            }
+                          }}
+                        >
+                          <i className="ri-delete-bin-line"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
+            
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="primary" onClick={handleShowEditRepresentative} className="me-2">
-            Update Representative
+        <Button variant="success" className="ms-3" onClick={handleShowAddRepresentative}>
+            Add Representative
           </Button>
           <Button variant="secondary" onClick={handleCloseRepresentativeModal}>
             Close
@@ -600,11 +716,11 @@ const VendorTable = () => {
                 />
               </Col>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">deisgnation</Form.Label>
+                <Form.Label className="form-label small">Designation</Form.Label>
                 <Form.Control
                   type="text"
-                  name="deisgnation"
-                  value={editRepresentativeForm.deisgnation}
+                  name="designation"
+                  value={editRepresentativeForm.designation}
                   onChange={handleEditRepresentativeFormChange}
                   className="form-control form-control-sm"
                 />
@@ -655,11 +771,6 @@ const VendorTable = () => {
                   required
                 >
                   <option value="">Select Employee</option>
-                  {employees.map(employee => (
-                    <option key={employee.employee_id} value={employee.employee_id}>
-                      {employee.name}
-                    </option>
-                  ))}
                 </Form.Select>
               </Col>
             </Row>
@@ -673,7 +784,7 @@ const VendorTable = () => {
                   className="form-control form-control-sm"
                 />
                 {editRepresentativeForm.visitingCard && (
-                  <small className="text-muted">Current file: {editRepresentativeForm.visitingCard}</small>
+                  <small className="text-muted">Current file: {typeof editRepresentativeForm.visitingCard === 'string' ? editRepresentativeForm.visitingCard.split('/').pop() : editRepresentativeForm.visitingCard.name}</small>
                 )}
               </Col>
             </Row>
@@ -802,6 +913,110 @@ const VendorTable = () => {
               </Button>
               <Button variant="primary" type="submit">
                 Save Changes
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Add Representative Modal */}
+      <Modal show={showAddRepresentativeModal} onHide={handleCloseAddRepresentativeModal} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Add Representative</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleAddRepresentativeSubmit}>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="name"
+                  value={editRepresentativeForm.name}
+                  onChange={handleEditRepresentativeFormChange}
+                  className="form-control form-control-sm"
+                  required
+                />
+              </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Designation</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="designation"
+                  value={editRepresentativeForm.designation}
+                  onChange={handleEditRepresentativeFormChange}
+                  className="form-control form-control-sm"
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  name="email"
+                  value={editRepresentativeForm.email}
+                  onChange={handleEditRepresentativeFormChange}
+                  className="form-control form-control-sm"
+                  required
+                />
+              </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Contact Number</Form.Label>
+                <Form.Control
+                  type="tel"
+                  name="contact_number"
+                  value={editRepresentativeForm.contact_number}
+                  onChange={handleEditRepresentativeFormChange}
+                  className="form-control form-control-sm"
+                  required
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Alternative Contact</Form.Label>
+                <Form.Control
+                  type="tel"
+                  name="contact_number2"
+                  value={editRepresentativeForm.contact_number2}
+                  onChange={handleEditRepresentativeFormChange}
+                  className="form-control form-control-sm"
+                />
+              </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Registered By</Form.Label>
+                <Form.Select
+                  name="registered_by"
+                  value={editRepresentativeForm.registered_by}
+                  onChange={handleEditRepresentativeFormChange}
+                  className="form-control form-control-sm"
+                  required
+                >
+                  <option value="">Select Employee</option>
+                </Form.Select>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={12} className="mb-2">
+                <Form.Label className="form-label small">Visiting Card</Form.Label>
+                <Form.Control
+                  type="file"
+                  name="visitingCard"
+                  onChange={handleEditRepresentativeFileChange}
+                  className="form-control form-control-sm"
+                />
+                {editRepresentativeForm.visitingCard && (
+                  <small className="text-muted">Current file: {typeof editRepresentativeForm.visitingCard === 'string' ? editRepresentativeForm.visitingCard.split('/').pop() : editRepresentativeForm.visitingCard.name}</small>
+                )}
+              </Col>
+            </Row>
+            <div className="text-end mt-3">
+              <Button variant="secondary" onClick={handleCloseAddRepresentativeModal} className="me-2">
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit">
+                Add Representative
               </Button>
             </div>
           </Form>

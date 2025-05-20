@@ -292,7 +292,7 @@
 }
 
 .search-container {
-  width: 300px;
+  /* Remove fixed width to allow flexibility */
 }
 
 .search-input {
@@ -323,23 +323,27 @@
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  width: 100vw;
+  height: 100vh;
+  background: rgba(44, 62, 80, 0.4); /* semi-transparent dark overlay */
+  z-index: 1050; /* higher than sidebar and other content */
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
 }
 
 .modal-content {
-  background: white;
+  background: #fff;
   border-radius: 8px;
-  width: 90%;
-  max-width: 800px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  z-index: 1060;
+  position: relative;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  scrollbar-width: thin;
+
 }
 
 .modal-header {
@@ -370,7 +374,8 @@
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
+  overflow-y: auto;
 }
 
 .form-row {
@@ -458,4 +463,54 @@ input:disabled {
   background-color: #6c757d;
   border: 1px solid #6c757d;
   color: white;
+}
+
+/* Responsive filter dropdown */
+.filter-dropdown {
+  position: absolute;
+  right: 0;
+  top: 110%;
+  z-index: 10;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  border-radius: 8px;
+  padding: 16px;
+  min-width: 340px; /* Keep desktop min-width */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 576px) {
+  .filter-dropdown {
+    position: fixed;
+    left: 70%;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    max-height: 90vh;
+    overflow-y: auto;
+    min-width: 200px; /* Smaller min-width for mobile */
+    width: 200px; /* Reduced width for smaller screens */
+    right: auto; /* Remove right positioning */
+    /* Ensure content is visible */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+   
+  }
+
+  /* Ensure inputs within filter dropdown are responsive */
+  .filter-dropdown .form-control.search-input {
+    width: 100%; /* Ensure full width */
+    box-sizing: border-box; /* Include padding and border in width */
+    display: block; /* Ensure block behavior in flex column */
+    min-height: 38px; /* Ensure a minimum height */
+    overflow: visible; /* Prevent content from being clipped */
+  }
+
+  /* Responsive styles for the Vendor ID search input */
+  .search-container .form-control.search-input {
+    width: 100% !important; /* Make it full width on mobile, use !important for testing */
+    margin-right: 0 !important; /* Remove right margin on mobile, use !important for testing */
+    box-sizing: border-box !important; /* Include padding and border, use !important for testing */
+    display: block !important; /* Ensure block behavior, use !important for testing */
+  }
 } 

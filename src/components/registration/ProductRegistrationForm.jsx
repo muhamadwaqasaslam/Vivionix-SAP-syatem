@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Form, Button } from 'react-bootstrap';
+import Select from 'react-select';
+import api from '../../utils/api';
 import './RegistrationForm.css';
 
 const ProductRegistrationForm = () => {
@@ -8,23 +10,57 @@ const ProductRegistrationForm = () => {
     reference_number: "",
     packsize: "",
     packprice: "",
-    price_date: "",
     vendor_id: "",
     remarks: "",
     registered_by: "",
     Qualitycertifications: "",
-    product_category: "",
+    product_category: [],
     brocure: null,
     ifu: null,
-    certificates: null
+    ce_certificate: null,
+    usfda_certificate: null,
+    jis_mhlw_certificate: null,
+    nmpa_certificate: null,
+    ifcc_certificate: null
   });
 
   const [vendors, setVendors] = useState([]);
-  const [employees, setEmployees] = useState([]);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [validationErrors, setValidationErrors] = useState({});
+
+  // Function to get user info from session or local storage
+  const getUserInfo = () => {
+    try {
+      const sessionUser = sessionStorage.getItem('user');
+      if (sessionUser) {
+        const userData = JSON.parse(sessionUser);
+        console.log('User data from session:', userData);
+        return userData;
+      }
+
+      const localUser = localStorage.getItem('user');
+      if (localUser) {
+        const userData = JSON.parse(localUser);
+        console.log('User data from local storage:', userData);
+        return userData;
+      }
+
+      // Fallback if no user data found
+      return {
+        employee_name: 'default_user',
+        employee_id: null
+      };
+    } catch (error) {
+      console.error('Error getting user info:', error);
+      // Return fallback on error
+      return {
+        employee_name: 'error_user',
+        employee_id: null
+      };
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,13 +74,12 @@ const ProductRegistrationForm = () => {
         const vendorsData = await vendorsResponse.json();
         setVendors(vendorsData);
 
-        // Fetch employees
-        const employeesResponse = await fetch('https://my.vivionix.com/employee/list_all/');
-        if (!employeesResponse.ok) {
-          throw new Error('Failed to fetch employees');
-        }
-        const employeesData = await employeesResponse.json();
-        setEmployees(employeesData);
+        // Set registered_by from user info
+        const userInfo = getUserInfo();
+        setProduct(prev => ({
+          ...prev,
+          registered_by: userInfo.employee_id || ''
+        }));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -78,10 +113,6 @@ const ProductRegistrationForm = () => {
       errors.packprice = 'Pack price is required';
     }
 
-    // Price Date validation
-    if (!product.price_date) {
-      errors.price_date = 'Price date is required';
-    }
 
     // Vendor validation
     if (!product.vendor_id) {
@@ -99,7 +130,7 @@ const ProductRegistrationForm = () => {
     }
 
     // Product Category validation
-    if (!product.product_category) {
+    if (product.product_category.length === 0) {
       errors.product_category = 'Product category is required';
     }
 
@@ -108,11 +139,23 @@ const ProductRegistrationForm = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    
+    if (type === 'select-multiple') {
+      // Handle multiple select
+      const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+      setProduct(prev => ({
+        ...prev,
+        [name]: selectedOptions
+      }));
+    } else {
+      // Handle other inputs
     setProduct(prev => ({
       ...prev,
       [name]: value
     }));
+    }
+    
     // Clear validation error when user types
     if (validationErrors[name]) {
       setValidationErrors(prev => ({
@@ -130,6 +173,21 @@ const ProductRegistrationForm = () => {
     }));
   };
 
+  const handleCategoryChange = (selectedOptions) => {
+    const selectedValues = selectedOptions ? selectedOptions.map(option => option.value) : [];
+    setProduct(prev => ({
+      ...prev,
+      product_category: selectedValues
+    }));
+    
+    if (validationErrors.product_category) {
+      setValidationErrors(prev => ({
+        ...prev,
+        product_category: null
+      }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -141,38 +199,92 @@ const ProductRegistrationForm = () => {
 
     try {
       const formData = new FormData();
-      Object.keys(product).forEach(key => {
-        formData.append(key, product[key]);
+      
+      // Append basic fields
+      formData.append('product_name', product.product_name);
+      formData.append('reference_number', product.reference_number);
+      formData.append('packsize', product.packsize);
+      formData.append('packprice', product.packprice);
+      formData.append('vendorname', product.vendor_id);
+      formData.append('remarks', product.remarks);
+      formData.append('registered_by', product.registered_by);
+      formData.append('Qualitycertifications', product.Qualitycertifications);
+      
+      // Append product categories as individual values
+      product.product_category.forEach((category, index) => {
+        formData.append(`product_category[${index}]`, category);
       });
 
-      const response = await fetch('https://my.vivionix.com/products/create/', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to register product');
+      // Append file fields if they exist
+      if (product.brocure) {
+        formData.append('brocure', product.brocure);
+      }
+      if (product.ifu) {
+        formData.append('ifu', product.ifu);
+      }
+      if (product.ce_certificate) {
+        formData.append('CE', product.ce_certificate);
+      }
+      if (product.usfda_certificate) {
+        formData.append('USFDA', product.usfda_certificate);
+      }
+      if (product.jis_mhlw_certificate) {
+        formData.append('MHLW', product.jis_mhlw_certificate);
+      }
+      if (product.nmpa_certificate) {
+        formData.append('NMPA', product.nmpa_certificate);
+      }
+      if (product.ifcc_certificate) {
+        formData.append('IFCC', product.ifcc_certificate);
       }
 
-      setSuccess(true);
-      setProduct({
-        product_name: "",
-        reference_number: "",
-        packsize: "",
-        packprice: "",
-        price_date: "",
-        vendor_id: "",
-        remarks: "",
-        registered_by: "",
-        Qualitycertifications: "",
-        product_category: "",
-        brocure: null,
-        ifu: null,
-        certificates: null
+      // Log the form data for debugging
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+      }
+
+      const response = await api.post('/products/register/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
-      setValidationErrors({});
+
+      if (response.data) {
+        setSuccess(true);
+        
+        // Reset form
+        setProduct({
+          product_name: "",
+          reference_number: "",
+          packsize: "",
+          packprice: "",
+          vendor_id: "",
+          remarks: "",
+          registered_by: "",
+          Qualitycertifications: "",
+          product_category: [],
+          brocure: null,
+          ifu: null,
+          ce_certificate: null,
+          usfda_certificate: null,
+          jis_mhlw_certificate: null,
+          nmpa_certificate: null,
+          ifcc_certificate: null
+        });
+        setValidationErrors({});
+      }
     } catch (err) {
-      setError(err.message);
+      console.error('Error registering product:', err);
+      if (err.response?.data) {
+        // Handle validation errors
+        if (err.response.data.product_category) {
+          setError('Invalid product category selection');
+        } else {
+          setError(err.response.data.detail || 'Failed to register product');
+        }
+      } else {
+        setError('Failed to register product. Please try again.');
+      }
     }
   };
 
@@ -206,7 +318,7 @@ const ProductRegistrationForm = () => {
                 )}
               </Col>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Reference Number</Form.Label>
+                <Form.Label className="form-label small">Ref/Cat Number</Form.Label>
                 <Form.Control
                   type="text"
                   name="reference_number"
@@ -235,7 +347,7 @@ const ProductRegistrationForm = () => {
                 )}
               </Col>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Pack Price</Form.Label>
+                <Form.Label className="form-label small">Pack Price / MRP</Form.Label>
                 <Form.Control
                   type="text"
                   name="packprice"
@@ -246,21 +358,6 @@ const ProductRegistrationForm = () => {
                 />
                 {validationErrors.packprice && (
                   <div className="invalid-feedback">{validationErrors.packprice}</div>
-                )}
-              </Col>
-
-              <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Price Date</Form.Label>
-                <Form.Control
-                  type="date"
-                  name="price_date"
-                  value={product.price_date}
-                  onChange={handleChange}
-                  className={`form-control form-control-sm ${validationErrors.price_date ? 'is-invalid' : ''}`}
-                  required
-                />
-                {validationErrors.price_date && (
-                  <div className="invalid-feedback">{validationErrors.price_date}</div>
                 )}
               </Col>
               <Col md={6} className="mb-2">
@@ -286,18 +383,53 @@ const ProductRegistrationForm = () => {
 
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Product Category</Form.Label>
-                <Form.Select
+                <Select
+                  isMulti
                   name="product_category"
-                  value={product.product_category}
-                  onChange={handleChange}
-                  className={`form-control form-control-sm ${validationErrors.product_category ? 'is-invalid' : ''}`}
-                  required
-                >
-                  <option value="">Select Category</option>
-                  <option value="Equipment">Equipment</option>
-                  <option value="Chemical">Chemical</option>
-                  <option value="Consumable Device">Consumable Device</option>
-                </Form.Select>
+                  value={product.product_category.map(category => ({ value: category, label: category }))}
+                  onChange={handleCategoryChange}
+                  options={[
+                    { value: 'Equipment', label: 'Equipment' },
+                    { value: 'Chemical', label: 'Chemical' },
+                    { value: 'Consumable Device', label: 'Consumable Device' }
+                  ]}
+                  className={`${validationErrors.product_category ? 'is-invalid' : ''}`}
+                  classNamePrefix="select"
+                  placeholder="Select Category(s)"
+                  styles={{
+                    option: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem',
+                      padding: '4px 8px'
+                    }),
+                    menu: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem'
+                    }),
+                    multiValue: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem'
+                    }),
+                    multiValueLabel: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem',
+                      padding: '2px 6px'
+                    }),
+                    multiValueRemove: (provided) => ({
+                      ...provided,
+                      padding: '2px 6px'
+                    }),
+                    control: (provided) => ({
+                      ...provided,
+                      minHeight: '31px',
+                      fontSize: '0.875rem'
+                    }),
+                    valueContainer: (provided) => ({
+                      ...provided,
+                      padding: '0 8px'
+                    })
+                  }}
+                />
                 {validationErrors.product_category && (
                   <div className="invalid-feedback">{validationErrors.product_category}</div>
                 )}
@@ -315,25 +447,57 @@ const ProductRegistrationForm = () => {
 
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Registered By</Form.Label>
-                <Form.Select
-                  name="registered_by"
-                  value={product.registered_by}
-                  onChange={handleChange}
-                  className={`form-control form-control-sm ${validationErrors.registered_by ? 'is-invalid' : ''}`}
-                  required
-                >
-                  <option value="">Select Employee</option>
-                  {employees.map(employee => (
-                    <option key={employee.employee_id} value={employee.employee_id}>
-                      {employee.name}
-                    </option>
-                  ))}
-                </Form.Select>
-                {validationErrors.registered_by && (
-                  <div className="invalid-feedback">{validationErrors.registered_by}</div>
-                )}
+                <Form.Control
+                  type="text"
+                  value={getUserInfo().employee_name || 'N/A'}
+                  className="form-control form-control-sm"
+                  readOnly
+                />
               </Col>
-              <Col md={2} className="mb-2">
+              <Row>
+            
+            <Col md={3} className="mb-2">
+              <Form.Label className="form-label small">USFDA Certificate</Form.Label>
+              <Form.Control
+                type="file"
+                name="usfda_certificate"
+                onChange={(e) => handleFileChange(e, 'usfda_certificate')}
+                className="form-control form-control-sm"
+                accept=".pdf,.jpg,.jpeg,.png"
+              />
+            </Col>
+            <Col md={3} className="mb-2">
+              <Form.Label className="form-label small">JIS/MHLW Certificate</Form.Label>
+              <Form.Control
+                type="file"
+                name="jis_mhlw_certificate"
+                onChange={(e) => handleFileChange(e, 'jis_mhlw_certificate')}
+                className="form-control form-control-sm"
+                accept=".pdf,.jpg,.jpeg,.png"
+              />
+            </Col>
+            <Col md={3} className="mb-2">
+              <Form.Label className="form-label small">NMPA Certificate</Form.Label>
+              <Form.Control
+                type="file"
+                name="nmpa_certificate"
+                onChange={(e) => handleFileChange(e, 'nmpa_certificate')}
+                className="form-control form-control-sm"
+                accept=".pdf,.jpg,.jpeg,.png"
+              />
+            </Col>
+            <Col md={3} className="mb-2">
+              <Form.Label className="form-label small">IFCC Certificate</Form.Label>
+              <Form.Control
+                type="file"
+                name="ifcc_certificate"
+                onChange={(e) => handleFileChange(e, 'ifcc_certificate')}
+                className="form-control form-control-sm"
+                accept=".pdf,.jpg,.jpeg,.png"
+              />
+            </Col>
+          </Row>
+              <Col md={3} className="mb-2">
                 <Form.Label className="form-label small">Brochure</Form.Label>
                 <Form.Control
                   type="file"
@@ -342,7 +506,7 @@ const ProductRegistrationForm = () => {
                   className="form-control form-control-sm"
                 />
               </Col>
-              <Col md={2} className="mb-2">
+              <Col md={3} className="mb-2">
                 <Form.Label className="form-label small">IFU</Form.Label>
                 <Form.Control
                   type="file"
@@ -351,16 +515,9 @@ const ProductRegistrationForm = () => {
                   className="form-control form-control-sm"
                 />
               </Col>
-              <Col md={2} className="mb-2">
-                <Form.Label className="form-label small">Certificates</Form.Label>
-                <Form.Control
-                  type="file"
-                  name="certificates"
-                  onChange={(e) => handleFileChange(e, 'certificates')}
-                  className="form-control form-control-sm"
-                />
-              </Col>
             </Row>
+
+          
 
               <Col md={12} className="mb-2">
                 <Form.Label className="form-label small">Remarks</Form.Label>
@@ -377,8 +534,6 @@ const ProductRegistrationForm = () => {
                   <div className="invalid-feedback">{validationErrors.remarks}</div>
                 )}
               </Col>
-
-             
 
             <Row className="mt-3">
               <Col md={12} className="text-center">

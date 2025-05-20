@@ -79,23 +79,26 @@ api.interceptors.response.use(
 
         // Call refresh token endpoint
         const response = await axios.post(`${API_URL}/employee/token/refresh/`, {
-          refresh: refreshToken,
+          refresh: refreshToken
         });
 
-        const { access } = response.data;
-        
-        // Update the access token
-        localStorage.setItem('access_token', access);
-        
-        // Update the authorization header
-        originalRequest.headers.Authorization = `Bearer ${access}`;
-        
-        // Update last activity time after successful token refresh
-        updateLastActivity();
-        
-        // Retry the original request
-        return api(originalRequest);
+        if (response.data && response.data.access) {
+          // Update the access token
+          localStorage.setItem('access_token', response.data.access);
+          
+          // Update the authorization header
+          originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
+          
+          // Update last activity time after successful token refresh
+          updateLastActivity();
+          
+          // Retry the original request
+          return api(originalRequest);
+        } else {
+          throw new Error('Invalid refresh token response');
+        }
       } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         // If refresh token is invalid, logout the user
         logout();
         return Promise.reject(refreshError);
@@ -119,6 +122,10 @@ export const login = async (email, password) => {
       throw new Error('No tokens received from server');
     }
 
+    // Store tokens
+    localStorage.setItem('access_token', access);
+    localStorage.setItem('refresh_token', refresh);
+
     // Set initial last activity time on login
     updateLastActivity();
 
@@ -140,14 +147,28 @@ export const login = async (email, password) => {
 };
 
 export const refreshToken = async () => {
-  const refreshToken = localStorage.getItem('refresh_token');
-  if (!refreshToken) {
-    throw new Error('No refresh token available');
+  try {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const response = await axios.post(`${API_URL}/employee/token/refresh/`, {
+      refresh: refreshToken
+    });
+
+    if (response.data && response.data.access) {
+      localStorage.setItem('access_token', response.data.access);
+      updateLastActivity();
+      return response.data;
+    } else {
+      throw new Error('Invalid refresh token response');
+    }
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+    logout();
+    throw error;
   }
-  const response = await api.post('/employee/token/refresh/', {
-    refresh: refreshToken,
-  });
-  return response.data;
 };
 
 export default api; 

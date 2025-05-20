@@ -7,12 +7,13 @@ const VendorRegistrationForm = () => {
   const [vendor, setVendor] = useState({
     vendorname: "",
     company_email: "",
-    type: null,
+    type: [],
     website: "",
     company_phone_number: "",
     address: "",
     representatives_name: [],
-    productcatalog: null
+    productcatalog: null,
+    iso: null
   });
 
   const [representative, setRepresentative] = useState({
@@ -81,8 +82,8 @@ const VendorRegistrationForm = () => {
     }
 
     // Type validation
-    if (!vendor.type) {
-      errors.type = 'Type is required';
+    if (!vendor.type || vendor.type.length === 0) {
+      errors.type = 'At least one type is required';
     }
 
     // Address validation
@@ -123,6 +124,19 @@ const VendorRegistrationForm = () => {
       setValidationErrors(prev => ({
         ...prev,
         [name]: null
+      }));
+    }
+  };
+
+  const handleTypeChange = (selectedOptions) => {
+    setVendor(prev => ({
+      ...prev,
+      type: selectedOptions ? selectedOptions.map(option => option.value) : []
+    }));
+    if (validationErrors.type) {
+      setValidationErrors(prev => ({
+        ...prev,
+        type: null
       }));
     }
   };
@@ -185,13 +199,13 @@ const VendorRegistrationForm = () => {
     // Auto-fill 'registered_by' in representative
     setRepresentative(prev => ({
       ...prev,
-      registered_by:  userInfo.employee_id || 'default_user',
+      registered_by: userInfo.employee_name || userInfo.employee_id || 'default_user',
     }));
   
     // If you want vendor to be updated too (optional):
     setVendor(prev => ({
       ...prev,
-      registered_by: userInfo.employee_id || 'default_user',
+      registered_by: userInfo.employee_name || userInfo.employee_id || 'default_user',
     }));
   
   }, []);
@@ -278,7 +292,7 @@ const VendorRegistrationForm = () => {
       setVendor({
         vendorname: "",
         company_email: "",
-        type: null,
+        type: [],
         website: "",
         company_phone_number: "",
         address: "",
@@ -348,7 +362,7 @@ const VendorRegistrationForm = () => {
               </Col>
 
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Company Phone Number</Form.Label>
+                <Form.Label className="form-label small">Contact Number</Form.Label>
                 <Form.Control
                   type="tel"
                   name="company_phone_number"
@@ -377,19 +391,53 @@ const VendorRegistrationForm = () => {
 
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Type</Form.Label>
-                <Form.Select
+                <Select
+                  isMulti
                   name="type"
-                  value={vendor.type}
-                  onChange={handleVendorChange}
-                  className={`form-control form-control-sm search-panel small ${validationErrors.type ? 'is-invalid' : ''}`}
-                  required
-                >
-                  <option value="" className="small">Select Type</option>
-                  <option value="supplier" className="small">Supplier</option>
-                  <option value="service" className="small">Service Provider</option>
-                  <option value="Maufacturer" className="small">Manufacturer</option>
-                  <option value="Distributor" className="small">Distributor</option>
-                </Form.Select>
+                  value={vendor.type.map(type => ({ value: type, label: type }))}
+                  onChange={handleTypeChange}
+                  options={[
+                    { value: 'manufacturer', label: 'Manufacturer' },
+                    { value: 'importer', label: 'Importer' },
+                    { value: 'distributor', label: 'Distributor' }
+                  ]}
+                  className={`${validationErrors.type ? 'is-invalid' : ''}`}
+                  classNamePrefix="select"
+                  placeholder="Select Type(s)"
+                  styles={{
+                    option: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem',
+                      padding: '4px 8px'
+                    }),
+                    menu: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem'
+                    }),
+                    multiValue: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem'
+                    }),
+                    multiValueLabel: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem',
+                      padding: '2px 6px'
+                    }),
+                    multiValueRemove: (provided) => ({
+                      ...provided,
+                      padding: '2px 6px'
+                    }),
+                    control: (provided) => ({
+                      ...provided,
+                      minHeight: '31px',
+                      fontSize: '0.875rem'
+                    }),
+                    valueContainer: (provided) => ({
+                      ...provided,
+                      padding: '0 8px'
+                    })
+                  }}
+                />
                 {validationErrors.type && (
                   <div className="invalid-feedback">{validationErrors.type}</div>
                 )}
@@ -401,6 +449,26 @@ const VendorRegistrationForm = () => {
                   type="file"
                   name="productcatalog"
                   onChange={(e) => handleFileChange(e, 'productcatalog')}
+                  className="form-control form-control-sm"
+                />
+              </Col>
+
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">ISO</Form.Label>
+                <Form.Control
+                  type="file"
+                  name="iso"
+                  onChange={(e) => handleFileChange(e, 'iso')}
+                  className="form-control form-control-sm"
+                />
+              </Col>
+
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">ISO</Form.Label>
+                <Form.Control
+                  type="file"
+                  name="iso"
+                  onChange={(e) => handleFileChange(e, 'iso')}
                   className="form-control form-control-sm"
                 />
               </Col>

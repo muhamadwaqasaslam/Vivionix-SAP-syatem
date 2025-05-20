@@ -1,230 +1,69 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Form, Button, Modal, Table, Alert } from 'react-bootstrap';
+import {  Row, Col, Form, Button, Modal, Alert } from 'react-bootstrap';
+import api from '../../utils/api';
 import './EmployeeTable.css';
+import Select from 'react-select';
 
 const ProductTable = () => {
-  // Dummy data for testing
-  const dummyProducts = [
-    {
-      product_id: "PRD001",
-      product_name: "Digital Thermometer",
-      reference_number: "REF001",
-      packsize: "10 units",
-      packprice: "$50.00",
-      price_date: "2024-03-15",
-      vendor_display_name: "MediTech Solutions",
-      is_available: true,
-      Qualitycertifications: "ISO 13485",
-      product_category: "Equipment",
-      brocure: "https://example.com/brochure1.pdf",
-      ifu: "https://example.com/ifu1.pdf",
-      certificates: "https://example.com/cert1.pdf"
-    },
-    {
-      product_id: "PRD002",
-      product_name: "Disposable Gloves",
-      reference_number: "REF002",
-      packsize: "100 pairs",
-      packprice: "$25.00",
-      price_date: "2024-03-10",
-      vendor_display_name: "Safety First Medical",
-      is_available: true,
-      Qualitycertifications: "CE Certified",
-      product_category: "Consumable Device",
-      brocure: null,
-      ifu: "https://example.com/ifu2.pdf",
-      certificates: "https://example.com/cert2.pdf"
-    },
-    {
-      product_id: "PRD003",
-      product_name: "Antiseptic Solution",
-      reference_number: "REF003",
-      packsize: "500ml",
-      packprice: "$15.00",
-      price_date: "2024-03-05",
-      vendor_display_name: "CleanCare Pharma",
-      is_available: false,
-      Qualitycertifications: "FDA Approved",
-      product_category: "Chemical",
-      brocure: "https://example.com/brochure3.pdf",
-      ifu: null,
-      certificates: "https://example.com/cert3.pdf"
-    },
-    {
-      product_id: "PRD004",
-      product_name: "Blood Pressure Monitor",
-      reference_number: "REF004",
-      packsize: "1 unit",
-      packprice: "$120.00",
-      price_date: "2024-03-20",
-      vendor_display_name: "HealthTech Devices",
-      is_available: true,
-      Qualitycertifications: "ISO 13485, CE",
-      product_category: "Equipment",
-      brocure: "https://example.com/brochure4.pdf",
-      ifu: "https://example.com/ifu4.pdf",
-      certificates: null
-    },
-    {
-      product_id: "PRD005",
-      product_name: "Surgical Masks",
-      reference_number: "REF005",
-      packsize: "50 units",
-      packprice: "$30.00",
-      price_date: "2024-03-18",
-      vendor_display_name: "ProtectPlus Medical",
-      is_available: true,
-      Qualitycertifications: "ASTM Level 3",
-      product_category: "Consumable Device",
-      brocure: null,
-      ifu: "https://example.com/ifu5.pdf",
-      certificates: "https://example.com/cert5.pdf"
-    },
-    {
-      product_id: "PRD006",
-      product_name: "Stethoscope",
-      reference_number: "REF006",
-      packsize: "1 unit",
-      packprice: "$45.00",
-      price_date: "2024-03-22",
-      vendor_display_name: "MediTech Solutions",
-      is_available: true,
-      Qualitycertifications: "ISO 13485",
-      product_category: "Equipment",
-      brocure: "https://example.com/brochure6.pdf",
-      ifu: "https://example.com/ifu6.pdf",
-      certificates: "https://example.com/cert6.pdf"
-    },
-    {
-      product_id: "PRD007",
-      product_name: "Bandages",
-      reference_number: "REF007",
-      packsize: "100 units",
-      packprice: "$20.00",
-      price_date: "2024-03-19",
-      vendor_display_name: "Safety First Medical",
-      is_available: true,
-      Qualitycertifications: "CE Certified",
-      product_category: "Consumable Device",
-      brocure: null,
-      ifu: "https://example.com/ifu7.pdf",
-      certificates: "https://example.com/cert7.pdf"
-    },
-    {
-      product_id: "PRD008",
-      product_name: "Disinfectant Wipes",
-      reference_number: "REF008",
-      packsize: "200 wipes",
-      packprice: "$35.00",
-      price_date: "2024-03-17",
-      vendor_display_name: "CleanCare Pharma",
-      is_available: false,
-      Qualitycertifications: "FDA Approved",
-      product_category: "Chemical",
-      brocure: "https://example.com/brochure8.pdf",
-      ifu: null,
-      certificates: "https://example.com/cert8.pdf"
-    },
-    {
-      product_id: "PRD009",
-      product_name: "Pulse Oximeter",
-      reference_number: "REF009",
-      packsize: "1 unit",
-      packprice: "$80.00",
-      price_date: "2024-03-21",
-      vendor_display_name: "HealthTech Devices",
-      is_available: true,
-      Qualitycertifications: "ISO 13485, CE",
-      product_category: "Equipment",
-      brocure: "https://example.com/brochure9.pdf",
-      ifu: "https://example.com/ifu9.pdf",
-      certificates: null
-    },
-    {
-      product_id: "PRD010",
-      product_name: "Face Shields",
-      reference_number: "REF010",
-      packsize: "25 units",
-      packprice: "$40.00",
-      price_date: "2024-03-16",
-      vendor_display_name: "ProtectPlus Medical",
-      is_available: true,
-      Qualitycertifications: "ASTM Level 3",
-      product_category: "Consumable Device",
-      brocure: null,
-      ifu: "https://example.com/ifu10.pdf",
-      certificates: "https://example.com/cert10.pdf"
-    },
-    {
-      product_id: "PRD011",
-      product_name: "Digital Scale",
-      reference_number: "REF011",
-      packsize: "1 unit",
-      packprice: "$90.00",
-      price_date: "2024-03-23",
-      vendor_display_name: "MediTech Solutions",
-      is_available: true,
-      Qualitycertifications: "ISO 13485",
-      product_category: "Equipment",
-      brocure: "https://example.com/brochure11.pdf",
-      ifu: "https://example.com/ifu11.pdf",
-      certificates: "https://example.com/cert11.pdf"
-    },
-    {
-      product_id: "PRD012",
-      product_name: "Cotton Swabs",
-      reference_number: "REF012",
-      packsize: "500 units",
-      packprice: "$15.00",
-      price_date: "2024-03-14",
-      vendor_display_name: "Safety First Medical",
-      is_available: true,
-      Qualitycertifications: "CE Certified",
-      product_category: "Consumable Device",
-      brocure: null,
-      ifu: "https://example.com/ifu12.pdf",
-      certificates: "https://example.com/cert12.pdf"
-    }
-  ];
-
-  const [products, setProducts] = useState(dummyProducts);
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
   const [editForm, setEditForm] = useState({
     product_name: "",
     reference_number: "",
     packsize: "",
     packprice: "",
-    price_date: "",
-    vendor_display_name: "",
-    is_available: true,
+    vendor_id: "",
+    remarks: "",
+    registered_by_name: "",
     Qualitycertifications: "",
-    product_category: "",
+    product_category: [],
     brocure: null,
     ifu: null,
-    certificates: null
+    CE: null,
+    USFDA: null,
+    MHLW: null,
+    NMPA: null,
+    IFCC: null,
   });
   const itemsPerPage = 10;
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationVariant, setNotificationVariant] = useState('success');
+  const [vendors, setVendors] = useState([]);
 
-  // Comment out the API call for now
-  /*
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('https://my.vivionix.com/products/list_all/');
-        if (!response.ok) {
-          throw new Error('Failed to fetch products');
-        }
-        const data = await response.json();
-        setProducts(data);
+        const response = await api.get('/products/list_all/');
+        // Process the product_category to ensure it's an array of strings
+        const processedProducts = response.data.map(product => {
+          let categories = product.product_category;
+          if (typeof categories === 'string') {
+            // Attempt to parse the string representation of a list
+            try {
+              // Remove brackets and split by comma, then trim spaces and quotes
+              categories = categories.replace(/[[\]']/g, '').split(',').map(cat => cat.trim()).filter(Boolean);
+            } catch (e) {
+              console.error('Failed to parse product_category string:', categories, e);
+              categories = []; // Default to empty array on parse error
+            }
+          } else if (!Array.isArray(categories)) {
+            // If it's neither a string nor an array, default to empty array
+            categories = [];
+          }
+          // Ensure vendor_id is correctly mapped
+          return { ...product, product_category: categories, vendor_id: product.vendor_id };
+        });
+        setProducts(processedProducts);
       } catch (err) {
-        setError(err.message);
+        setError(err.response?.data?.detail || 'Failed to fetch products');
+        console.error('Error fetching products:', err);
       } finally {
         setLoading(false);
       }
@@ -232,66 +71,128 @@ const ProductTable = () => {
 
     fetchProducts();
   }, []);
-  */
+
+  useEffect(() => {
+    // Fetch vendors for the dropdown
+    const fetchVendors = async () => {
+      try {
+        const response = await api.get('/vendors/list_all/');
+        setVendors(response.data);
+        console.log('Fetched vendors:', response.data); // Log fetched vendors
+      } catch (err) {
+        console.error('Error fetching vendors:', err);
+      }
+    };
+
+    fetchVendors();
+  }, []);
+
+  const handleShowNotification = (message, variant) => {
+    setNotificationMessage(message);
+    setNotificationVariant(variant);
+    setShowNotification(true);
+
+    // Auto-hide notification after 5 seconds
+    setTimeout(() => {
+      setShowNotification(false);
+    }, 5000);
+  };
+
+  const handleDelete = async (product_id) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        // Updated API call based on the correct endpoint structure
+        const response = await api.delete(`/products/delete/${product_id}/`);
+        
+        if (response.data.success) {
+          // Remove the deleted product from the state
+          setProducts(prevProducts => 
+            prevProducts.filter(product => product.product_id !== product_id)
+          );
+          handleShowNotification('Product deleted successfully!', 'success');
+        } else {
+           // Handle cases where API returns success: false or similar
+          handleShowNotification(response.data.detail || 'Failed to delete product.', 'danger');
+        }
+      } catch (err) {
+        console.error('Error deleting product:', err);
+        handleShowNotification(err.response?.data?.detail || 'Failed to delete product.', 'danger');
+      }
+    }
+  };
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
   };
 
-  const handleShowDetails = (product) => {
-    setSelectedProduct(product);
-    setShowDetailsModal(true);
-  };
-
-  const handleCloseDetailsModal = () => {
-    setShowDetailsModal(false);
-    setSelectedProduct(null);
-  };
-
   const handleShowEdit = (product) => {
-    setSelectedProduct(product);
+    setEditingProductId(product.product_id);
+    console.log('Editing product vendor_id:', product.vendor_id); // Log product vendor ID
     setEditForm({
       product_name: product.product_name,
       reference_number: product.reference_number,
       packsize: product.packsize,
       packprice: product.packprice,
-      price_date: product.price_date,
-      vendor_display_name: product.vendor_display_name,
-      is_available: product.is_available,
+      vendor_id: product.vendor_id,
+      remarks: product.remarks,
+      registered_by_name: product.registered_by_name,
       Qualitycertifications: product.Qualitycertifications,
-      product_category: product.product_category,
+      product_category: Array.isArray(product.product_category) ? product.product_category : [product.product_category].filter(Boolean),
       brocure: product.brocure,
       ifu: product.ifu,
-      certificates: product.certificates
+      ce_certificate: product.ce_certificate,
+      usfda_certificate: product.usfda_certificate,
+      jis_mhlw_certificate: product.jis_mhlw_certificate,
+      nmpa_certificate: product.nmpa_certificate,
+      ifcc_certificate: product.ifcc_certificate,
     });
     setShowEditModal(true);
   };
 
   const handleCloseEditModal = () => {
     setShowEditModal(false);
-    setSelectedProduct(null);
+    setEditingProductId(null);
     setEditForm({
       product_name: "",
       reference_number: "",
       packsize: "",
       packprice: "",
-      price_date: "",
-      vendor_display_name: "",
-      is_available: true,
+      vendor_id: "",
+      remarks: "",
+      registered_by_name: "",
       Qualitycertifications: "",
-      product_category: "",
+      product_category: [],
       brocure: null,
       ifu: null,
-      certificates: null
+      ce_certificate: null,
+      usfda_certificate: null,
+      jis_mhlw_certificate: null,
+      nmpa_certificate: null,
+      ifcc_certificate: null,
     });
   };
 
   const handleEditFormChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setEditForm(prev => ({
+        ...prev,
+        [name]: checked
+      }));
+    } else {
+      setEditForm(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleEditCategoryChange = (selectedOptions) => {
+    const selectedValues = selectedOptions ? selectedOptions.map(option => option.value) : [];
     setEditForm(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      product_category: selectedValues
     }));
   };
 
@@ -306,28 +207,89 @@ const ProductTable = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      // In a real application, you would make an API call here
-      // For now, we'll just update the local state
+      const formData = new FormData();
+      
+      // Append basic fields
+      formData.append('product_name', editForm.product_name);
+      formData.append('reference_number', editForm.reference_number);
+      formData.append('packsize', editForm.packsize);
+      formData.append('packprice', editForm.packprice);
+      formData.append('vendor_id', editForm.vendor_id);
+      formData.append('remarks', editForm.remarks);
+      formData.append('registered_by_name', editForm.registered_by_name);
+      formData.append('Qualitycertifications', editForm.Qualitycertifications);
+      
+      // Append product categories as individual values
+      if (Array.isArray(editForm.product_category)) {
+        editForm.product_category.forEach(category => {
+          if (category) {
+            formData.append('product_category', category);
+          }
+        });
+      } else if (editForm.product_category) {
+        formData.append('product_category', editForm.product_category);
+      }
+
+      // Append file fields if they exist
+      if (editForm.brocure) {
+        formData.append('brocure', editForm.brocure);
+      }
+      if (editForm.ifu) {
+        formData.append('ifu', editForm.ifu);
+      }
+      if (editForm.ce_certificate) {
+        formData.append('CE', editForm.ce_certificate);
+      }
+      if (editForm.usfda_certificate) {
+        formData.append('USFDA', editForm.usfda_certificate);
+      }
+      if (editForm.jis_mhlw_certificate) {
+        formData.append('MHLW', editForm.jis_mhlw_certificate);
+      }
+      if (editForm.nmpa_certificate) {
+        formData.append('NMPA', editForm.nmpa_certificate);
+      }
+      if (editForm.ifcc_certificate) {
+        formData.append('IFCC', editForm.ifcc_certificate);
+      }
+
+      // Updated API call for product update
+      const response = await api.put(`/products/update/${editingProductId}/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      // Update the products list with the edited product
       setProducts(prevProducts => 
         prevProducts.map(product => 
-          product.product_id === selectedProduct.product_id 
-            ? { ...product, ...editForm }
+          product.product_id === editingProductId 
+            ? response.data
             : product
         )
       );
+
       handleCloseEditModal();
+      handleShowNotification('Product updated successfully!', 'success');
+
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || 'Failed to update product');
+      console.error('Error updating product:', err);
+      handleShowNotification(err.response?.data?.detail || 'Failed to update product.', 'danger');
     }
   };
 
   const filteredProducts = products.filter(product => {
     const searchLower = searchTerm.toLowerCase();
+    const categories = Array.isArray(product.product_category) 
+      ? product.product_category 
+      : [product.product_category].filter(Boolean);
+    
     return (
-      product.product_name.toLowerCase().includes(searchLower) ||
-      product.reference_number.toLowerCase().includes(searchLower) ||
+      product.product_name?.toLowerCase().includes(searchLower) ||
+      product.reference_number?.toLowerCase().includes(searchLower) ||
       product.vendor_display_name?.toLowerCase().includes(searchLower) ||
-      product.product_category?.toLowerCase().includes(searchLower)
+      categories.some(cat => cat?.toLowerCase().includes(searchLower))
     );
   });
 
@@ -352,6 +314,16 @@ const ProductTable = () => {
     <div className="employee-table-container">
       <h3 className="table-heading">Product Management</h3>
       
+      {/* Notification Alert */}
+      <Alert 
+        show={showNotification} 
+        variant={notificationVariant} 
+        onClose={() => setShowNotification(false)} 
+        dismissible
+      >
+        {notificationMessage}
+      </Alert>
+
       <div className="table-header">
         <div className="search-container">
           <input
@@ -373,10 +345,18 @@ const ProductTable = () => {
               <th scope="col">Reference</th>
               <th scope="col">Pack Size</th>
               <th scope="col">Pack Price</th>
-              <th scope="col">Price Date</th>
               <th scope="col">Vendor</th>
               <th scope="col">Category</th>
-              <th scope="col">Status</th>
+              <th scope="col">Remarks</th>
+              <th scope="col">Registered By</th>
+              <th scope="col">Quality Certifications</th>
+              <th scope="col">Brochure</th>
+              <th scope="col">IFU</th>
+              <th scope="col">CE Cert</th>
+              <th scope="col">USFDA Cert</th>
+              <th scope="col">JIS/MHLW Cert</th>
+              <th scope="col">NMPA Cert</th>
+              <th scope="col">IFCC Cert</th>
               <th scope="col">Actions</th>
             </tr>
           </thead>
@@ -387,7 +367,6 @@ const ProductTable = () => {
                 <td>
                   <button
                     className="btn btn-link btn-sm p-0"
-                    onClick={() => handleShowDetails(product)}
                   >
                     {product.product_name}
                   </button>
@@ -395,17 +374,71 @@ const ProductTable = () => {
                 <td>{product.reference_number}</td>
                 <td>{product.packsize}</td>
                 <td>{product.packprice}</td>
-                <td>{new Date(product.price_date).toLocaleDateString()}</td>
                 <td>{product.vendor_display_name}</td>
                 <td>
-                  <span className="badge bg-info-transparent">
-                    {product.product_category}
-                  </span>
+                  {Array.isArray(product.product_category) ? (
+                    product.product_category.map((category, index) => (
+                      <span key={index} className="badge bg-info-transparent me-1">
+                        {category}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="badge bg-info-transparent">
+                      {product.product_category}
+                    </span>
+                  )}
+                </td>
+                <td>{product.remarks}</td>
+                <td>{product.registered_by_name}</td>
+                <td>{product.Qualitycertifications}</td>
+                <td>
+                  {product.brocure ? (
+                    <a href={product.brocure} target="_blank" rel="noopener noreferrer">View Brochure</a>
+                  ) : (
+                    'N/A'
+                  )}
                 </td>
                 <td>
-                  <span className={`badge ${product.is_available ? 'bg-success-transparent' : 'bg-danger-transparent'}`}>
-                    {product.is_available ? 'Available' : 'Not Available'}
-                  </span>
+                  {product.ifu ? (
+                    <a href={product.ifu} target="_blank" rel="noopener noreferrer">View IFU</a>
+                  ) : (
+                    'N/A'
+                  )}
+                </td>
+                <td>
+                  {product.ce_certificate ? (
+                    <a href={product.ce_certificate} target="_blank" rel="noopener noreferrer">View CE Cert</a>
+                  ) : (
+                    'N/A'
+                  )}
+                </td>
+                <td>
+                  {product.usfda_certificate ? (
+                    <a href={product.usfda_certificate} target="_blank" rel="noopener noreferrer">View USFDA Cert</a>
+                  ) : (
+                    'N/A'
+                  )}
+                </td>
+                <td>
+                  {product.jis_mhlw_certificate ? (
+                    <a href={product.jis_mhlw_certificate} target="_blank" rel="noopener noreferrer">View JIS/MHLW Cert</a>
+                  ) : (
+                    'N/A'
+                  )}
+                </td>
+                <td>
+                  {product.nmpa_certificate ? (
+                    <a href={product.nmpa_certificate} target="_blank" rel="noopener noreferrer">View NMPA Cert</a>
+                  ) : (
+                    'N/A'
+                  )}
+                </td>
+                <td>
+                  {product.ifcc_certificate ? (
+                    <a href={product.ifcc_certificate} target="_blank" rel="noopener noreferrer">View IFCC Cert</a>
+                  ) : (
+                    'N/A'
+                  )}
                 </td>
                 <td>
                   <div className="hstack gap-2 fs-15">
@@ -419,6 +452,7 @@ const ProductTable = () => {
                     <button 
                       className="btn btn-icon btn-sm btn-danger"
                       title="Delete"
+                      onClick={() => handleDelete(product.product_id)}
                     >
                       <i className="ri-delete-bin-line"></i>
                     </button>
@@ -466,151 +500,6 @@ const ProductTable = () => {
           </ul>
         </nav>
       </div>
-
-      {/* Product Details Modal */}
-      <Modal show={showDetailsModal} onHide={handleCloseDetailsModal} centered size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Product Details</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedProduct && (
-            <div>
-              <Row>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Product Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={selectedProduct.product_name}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Reference Number</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={selectedProduct.reference_number}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-              </Row>
-              <Row>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Pack Size</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={selectedProduct.packsize}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Pack Price</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={selectedProduct.packprice}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-              </Row>
-              <Row>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Price Date</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={new Date(selectedProduct.price_date).toLocaleDateString()}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Vendor</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={selectedProduct.vendor_display_name}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-              </Row>
-              <Row>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Product Category</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={selectedProduct.product_category}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-                <Col md={6} className="mb-2">
-                  <Form.Label className="form-label small">Quality Certifications</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={selectedProduct.Qualitycertifications}
-                    className="form-control form-control-sm"
-                    readOnly
-                  />
-                </Col>
-              </Row>
-              <Row>
-                <Col md={4} className="mb-2">
-                  <Form.Label className="form-label small">Brochure</Form.Label>
-                  {selectedProduct.brocure ? (
-                    <a 
-                      href={selectedProduct.brocure}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-link btn-sm p-0"
-                    >
-                      View Brochure
-                    </a>
-                  ) : (
-                    <span className="text-muted">No brochure available</span>
-                  )}
-                </Col>
-                <Col md={4} className="mb-2">
-                  <Form.Label className="form-label small">IFU</Form.Label>
-                  {selectedProduct.ifu ? (
-                    <a 
-                      href={selectedProduct.ifu}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-link btn-sm p-0"
-                    >
-                      View IFU
-                    </a>
-                  ) : (
-                    <span className="text-muted">No IFU available</span>
-                  )}
-                </Col>
-                <Col md={4} className="mb-2">
-                  <Form.Label className="form-label small">Certificates</Form.Label>
-                  {selectedProduct.certificates ? (
-                    <a 
-                      href={selectedProduct.certificates}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-link btn-sm p-0"
-                    >
-                      View Certificates
-                    </a>
-                  ) : (
-                    <span className="text-muted">No certificates available</span>
-                  )}
-                </Col>
-              </Row>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseDetailsModal}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
 
       {/* Edit Product Modal */}
       <Modal show={showEditModal} onHide={handleCloseEditModal} centered size="lg">
@@ -669,44 +558,75 @@ const ProductTable = () => {
             </Row>
             <Row>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Price Date</Form.Label>
-                <Form.Control
-                  type="date"
-                  name="price_date"
-                  value={editForm.price_date}
-                  onChange={handleEditFormChange}
-                  className="form-control form-control-sm"
-                  required
-                />
-              </Col>
-              <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Vendor</Form.Label>
                 <Form.Control
-                  type="text"
-                  name="vendor_display_name"
-                  value={editForm.vendor_display_name}
-                  onChange={handleEditFormChange}
-                  className="form-control form-control-sm"
-                  required
-                />
-              </Col>
-            </Row>
-            <Row>
-              <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Product Category</Form.Label>
-                <Form.Select
-                  name="product_category"
-                  value={editForm.product_category}
+                  as="select"
+                  name="vendor_id"
+                  value={editForm.vendor_id}
                   onChange={handleEditFormChange}
                   className="form-control form-control-sm"
                   required
                 >
-                  <option value="">Select Category</option>
-                  <option value="Equipment">Equipment</option>
-                  <option value="Chemical">Chemical</option>
-                  <option value="Consumable Device">Consumable Device</option>
-                </Form.Select>
+                  <option value="">Select Vendor</option>
+                  {vendors.map(vendor => (
+                    <option key={vendor.vendor_id} value={vendor.vendor_id}>
+                      {vendor.vendorname}
+                    </option>
+                  ))}
+                </Form.Control>
               </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Product Category</Form.Label>
+                <Select
+                  isMulti
+                  name="product_category"
+                  value={editForm.product_category.map(category => ({ value: category, label: category }))}
+                  onChange={handleEditCategoryChange}
+                  options={[
+                    { value: 'Equipment', label: 'Equipment' },
+                    { value: 'Chemical', label: 'Chemical' },
+                    { value: 'Consumable Device', label: 'Consumable Device' }
+                  ]}
+                  className="form-control-sm p-0"
+                  classNamePrefix="select"
+                  placeholder="Select Category(s)"
+                  styles={{
+                    option: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem',
+                      padding: '4px 8px'
+                    }),
+                    menu: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem'
+                    }),
+                    multiValue: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem'
+                    }),
+                    multiValueLabel: (provided) => ({
+                      ...provided,
+                      fontSize: '0.875rem',
+                      padding: '2px 6px'
+                    }),
+                    multiValueRemove: (provided) => ({
+                      ...provided,
+                      padding: '2px 6px'
+                    }),
+                    control: (provided) => ({
+                      ...provided,
+                      minHeight: '31px',
+                      fontSize: '0.875rem'
+                    }),
+                    valueContainer: (provided) => ({
+                      ...provided,
+                      padding: '0 8px'
+                    })
+                  }}
+                />
+              </Col>
+            </Row>
+            <Row>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Quality Certifications</Form.Label>
                 <Form.Control
@@ -717,16 +637,29 @@ const ProductTable = () => {
                   className="form-control form-control-sm"
                 />
               </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Registered By</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="registered_by_name"
+                  value={editForm.registered_by_name}
+                  onChange={handleEditFormChange}
+                  className="form-control form-control-sm"
+                  readOnly
+                />
+              </Col>
             </Row>
             <Row>
-              <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Availability</Form.Label>
-                <Form.Check
-                  type="switch"
-                  name="is_available"
-                  checked={editForm.is_available}
+              <Col md={12} className="mb-2">
+                <Form.Label className="form-label small">Remarks</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  name="remarks"
+                  value={editForm.remarks}
                   onChange={handleEditFormChange}
-                  label={editForm.is_available ? "Available" : "Not Available"}
+                  className="form-control form-control-sm"
+                  rows="2"
+                  required
                 />
               </Col>
             </Row>
@@ -739,8 +672,8 @@ const ProductTable = () => {
                   onChange={(e) => handleEditFileChange(e, 'brocure')}
                   className="form-control form-control-sm"
                 />
-                {editForm.brocure && (
-                  <small className="text-muted">Current file: {editForm.brocure}</small>
+                {typeof editForm.brocure === 'string' && editForm.brocure && (
+                  <small className="text-muted">Current file: <a href={editForm.brocure} target="_blank" rel="noopener noreferrer">{editForm.brocure.split('/').pop()}</a></small>
                 )}
               </Col>
               <Col md={4} className="mb-2">
@@ -751,20 +684,77 @@ const ProductTable = () => {
                   onChange={(e) => handleEditFileChange(e, 'ifu')}
                   className="form-control form-control-sm"
                 />
-                {editForm.ifu && (
-                  <small className="text-muted">Current file: {editForm.ifu}</small>
+                {typeof editForm.ifu === 'string' && editForm.ifu && (
+                  <small className="text-muted">Current file: <a href={editForm.ifu} target="_blank" rel="noopener noreferrer">{editForm.ifu.split('/').pop()}</a></small>
                 )}
               </Col>
               <Col md={4} className="mb-2">
-                <Form.Label className="form-label small">Certificates</Form.Label>
+                <Form.Label className="form-label small">CE Certificate</Form.Label>
                 <Form.Control
                   type="file"
-                  name="certificates"
-                  onChange={(e) => handleEditFileChange(e, 'certificates')}
+                  name="ce_certificate"
+                  onChange={(e) => handleEditFileChange(e, 'ce_certificate')}
                   className="form-control form-control-sm"
+                  accept=".pdf,.jpg,.jpeg,.png"
                 />
-                {editForm.certificates && (
-                  <small className="text-muted">Current file: {editForm.certificates}</small>
+                {typeof editForm.ce_certificate === 'string' && editForm.ce_certificate && (
+                  <small className="text-muted">Current file: <a href={editForm.ce_certificate} target="_blank" rel="noopener noreferrer">{editForm.ce_certificate.split('/').pop()}</a></small>
+                )}
+              </Col>
+            </Row>
+            <Row>
+              <Col md={4} className="mb-2">
+                <Form.Label className="form-label small">USFDA Certificate</Form.Label>
+                <Form.Control
+                  type="file"
+                  name="usfda_certificate"
+                  onChange={(e) => handleEditFileChange(e, 'usfda_certificate')}
+                  className="form-control form-control-sm"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                />
+                {typeof editForm.usfda_certificate === 'string' && editForm.usfda_certificate && (
+                  <small className="text-muted">Current file: <a href={editForm.usfda_certificate} target="_blank" rel="noopener noreferrer">{editForm.usfda_certificate.split('/').pop()}</a></small>
+                )}
+              </Col>
+              <Col md={4} className="mb-2">
+                <Form.Label className="form-label small">JIS/MHLW Certificate</Form.Label>
+                <Form.Control
+                  type="file"
+                  name="jis_mhlw_certificate"
+                  onChange={(e) => handleEditFileChange(e, 'jis_mhlw_certificate')}
+                  className="form-control form-control-sm"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                />
+                {typeof editForm.jis_mhlw_certificate === 'string' && editForm.jis_mhlw_certificate && (
+                  <small className="text-muted">Current file: <a href={editForm.jis_mhlw_certificate} target="_blank" rel="noopener noreferrer">{editForm.jis_mhlw_certificate.split('/').pop()}</a></small>
+                )}
+              </Col>
+              <Col md={4} className="mb-2">
+                <Form.Label className="form-label small">NMPA Certificate</Form.Label>
+                <Form.Control
+                  type="file"
+                  name="nmpa_certificate"
+                  onChange={(e) => handleEditFileChange(e, 'nmpa_certificate')}
+                  className="form-control form-control-sm"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                />
+                {typeof editForm.nmpa_certificate === 'string' && editForm.nmpa_certificate && (
+                  <small className="text-muted">Current file: <a href={editForm.nmpa_certificate} target="_blank" rel="noopener noreferrer">{editForm.nmpa_certificate.split('/').pop()}</a></small>
+                )}
+              </Col>
+            </Row>
+            <Row>
+              <Col md={4} className="mb-2">
+                <Form.Label className="form-label small">IFCC Certificate</Form.Label>
+                <Form.Control
+                  type="file"
+                  name="ifcc_certificate"
+                  onChange={(e) => handleEditFileChange(e, 'ifcc_certificate')}
+                  className="form-control form-control-sm"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                />
+                {typeof editForm.ifcc_certificate === 'string' && editForm.ifcc_certificate && (
+                  <small className="text-muted">Current file: <a href={editForm.ifcc_certificate} target="_blank" rel="noopener noreferrer">{editForm.ifcc_certificate.split('/').pop()}</a></small>
                 )}
               </Col>
             </Row>
