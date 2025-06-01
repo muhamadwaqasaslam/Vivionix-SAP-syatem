@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RiFilter3Line } from 'react-icons/ri';
 
-import { Row, Col, Form, Button, Modal } from 'react-bootstrap';
+import { Row, Col, Form, Button, Modal, Alert } from 'react-bootstrap';
 import './EmployeeTable.css';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
+import api from '../../utils/api';
 
 const VendorTable = () => {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const [filteredVendors, setFilteredVendors] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,6 +19,7 @@ const VendorTable = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showEditRepresentativeModal, setShowEditRepresentativeModal] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState(null);
+  const [selectedVendorForRep, setSelectedVendorForRep] = useState(null);
   const [editForm, setEditForm] = useState({
     category: "",
     type: "",
@@ -34,36 +37,60 @@ const VendorTable = () => {
   });
   const [editRepresentativeForm, setEditRepresentativeForm] = useState({
     name: "",
-    designation: "",
+    deisgnation: "",
     email: "",
     contact_number: "",
     contact_number2: "",
+    visitingCard: null,
     registered_by: "",
-    visitingCard: null
+    vendor: ""
   });
   const [showAddRepresentativeModal, setShowAddRepresentativeModal] = useState(false);
   const itemsPerPage = 10;
 
   const [showSearch, setShowSearch] = useState(false);
-  const [pendingSearchTerm, setPendingSearchTerm] = useState("");
 
   const [vendorIdSearch, setVendorIdSearch] = useState("");
   const [filterFields, setFilterFields] = useState({ name: "", email: "", type: "" });
 
   const filterFormRef = useRef(null);
 
+  const [validationErrors, setValidationErrors] = useState({});
+  const [registeredByName, setRegisteredByName] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const fetchRepresentatives = async () => {
+    try {
+      const response = await api.get('/vendors/representatives/');
+      if (response.data) {
+        // Update the vendors list with representatives data
+        setVendors(prevVendors => 
+          prevVendors.map(vendor => {
+            const vendorReps = response.data.filter(rep => rep.vendor_name === vendor.vendorname);
+            return {
+              ...vendor,
+              representatives_name: vendorReps
+            };
+          })
+        );
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to fetch representatives');
+    }
+  };
+
   useEffect(() => {
     const fetchVendors = async () => {
       try {
         setLoading(true);
-        const response = await fetch('https://my.vivionix.com/vendors/list_all/');
-        if (!response.ok) {
-          throw new Error('Failed to fetch vendors');
+        const response = await api.get('/vendors/list_all/');
+        if (response.data) {
+          setVendors(response.data);
+          // Fetch representatives after getting vendors
+          await fetchRepresentatives();
         }
-        const data = await response.json();
-        setVendors(data);
       } catch (err) {
-        setError(err.message);
+        setError(err.response?.data?.detail || err.message || 'Failed to fetch vendors');
       } finally {
         setLoading(false);
       }
@@ -85,8 +112,54 @@ const VendorTable = () => {
     };
   }, [showSearch]);
 
-  const handleShowRepresentative = (representative) => {
+  useEffect(() => {
+    const getUserInfo = () => {
+      try {
+        const sessionUser = sessionStorage.getItem('user');
+        if (sessionUser) {
+          const userData = JSON.parse(sessionUser);
+          return userData;
+        }
+  
+        const localUser = localStorage.getItem('user');
+        if (localUser) {
+          const userData = JSON.parse(localUser);
+          return userData;
+        }
+  
+        return {
+          employee_id: 'default_id',
+          employee_name: 'default_user',
+          email: 'default@example.com'
+        };
+      } catch (error) {
+        console.error('Error getting user info:', error);
+        return {
+          employee_id: 'default_id',
+          employee_name: 'default_user',
+          email: 'default@example.com'
+        };
+      }
+    };
+
+    const userInfo = getUserInfo();
+    
+    if (userInfo.employee_name) {
+      setRegisteredByName(userInfo.employee_name);
+    } else if (userInfo.name) {
+      setRegisteredByName(userInfo.name);
+    }
+
+    if (userInfo.employee_id) {
+      setEditRepresentativeForm(prev => ({ ...prev, registered_by: userInfo.employee_id }));
+    } else if (userInfo.id) {
+      setEditRepresentativeForm(prev => ({ ...prev, registered_by: userInfo.id }));
+    }
+  }, []);
+
+  const handleShowRepresentative = (representative, vendor) => {
     setSelectedRepresentative(representative);
+    setSelectedVendorForRep(vendor);
     setShowRepresentativeModal(true);
   };
 
@@ -160,7 +233,6 @@ const VendorTable = () => {
     const { name, email, type } = filterFields;
     if (!name && !email && !type) {
       setFilteredVendors(vendors);
-      setSearchTerm("");
     } else {
       const matched = vendors.filter((vendor) =>
         (!name || (vendor.vendorname && vendor.vendorname.toLowerCase().includes(name.toLowerCase()))) &&
@@ -168,7 +240,6 @@ const VendorTable = () => {
         (!type || (vendor.type && vendor.type.toLowerCase().includes(type.toLowerCase())))
       );
       setFilteredVendors(matched);
-      setSearchTerm(name || email || type);
     }
     setShowSearch(false);
   };
@@ -205,16 +276,18 @@ const VendorTable = () => {
     }
   };
 
-  const handleShowEditRepresentative = () => {
+  const handleShowEditRepresentative = (rep) => {
     setEditRepresentativeForm({
-      name: selectedRepresentative.name,
-      designation: selectedRepresentative.designation,
-      email: selectedRepresentative.email,
-      contact_number: selectedRepresentative.contact_number,
-      contact_number2: selectedRepresentative.contact_number2,
-      registered_by: selectedRepresentative.registered_by,
-      visitingCard: selectedRepresentative.visitingcard
+      name: rep.name,
+      deisgnation: rep.deisgnation,
+      email: rep.email,
+      contact_number: rep.contact_number,
+      contact_number2: rep.contact_number2,
+      visitingCard: rep.visitingcard,
+      registered_by: rep.registered_by,
+      vendor: rep.vendor_name
     });
+    setSelectedRepresentative(rep);
     setShowEditRepresentativeModal(true);
   };
 
@@ -222,11 +295,10 @@ const VendorTable = () => {
     setShowEditRepresentativeModal(false);
     setEditRepresentativeForm({
       name: "",
-      designation: "",
+      deisgnation: "",
       email: "",
       contact_number: "",
       contact_number2: "",
-      registered_by: "",
       visitingCard: null
     });
   };
@@ -237,6 +309,12 @@ const VendorTable = () => {
       ...prev,
       [name]: value
     }));
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: null
+      }));
+    }
   };
 
   const handleEditRepresentativeFileChange = (e) => {
@@ -251,26 +329,22 @@ const VendorTable = () => {
     if (!window.confirm("Are you sure you want to delete this vendor?")) return;
 
     try {
-      const accessToken = localStorage.getItem("access_token");
+      setLoading(true);
+      const response = await api.delete(`/vendors/delete/${vendorId}/`);
 
-      const response = await fetch(`https://my.vivionix.com/vendors/delete/${vendorId}/`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (response.ok) {
+      if (response.status === 200 || response.status === 204) {
         // Remove deleted vendor from UI
         setVendors((prevVendors) => prevVendors.filter(v => v.vendor_id !== vendorId));
-        alert("Vendor deleted successfully.");
+        setSuccess(true);
+        setError(null);
       } else {
-        const errorText = await response.text();
-        alert("Failed to delete vendor: " + errorText);
+        throw new Error('Failed to delete vendor');
       }
     } catch (err) {
-      console.error("Delete error:", err);
-      alert("Something went wrong while deleting.");
+      setError(err.response?.data?.detail || err.message || 'Failed to delete vendor');
+      setSuccess(false);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -278,25 +352,85 @@ const VendorTable = () => {
   const handleEditRepresentativeSubmit = async (e) => {
     e.preventDefault();
     try {
-      // In a real application, you would make an API call here
-      // For now, we'll just update the local state
-      setVendors(prevVendors =>
-        prevVendors.map(vendor => {
-          if (vendor.representatives_name && vendor.representatives_name.length > 0) {
-            const updatedRepresentatives = vendor.representatives_name.map(rep =>
-              rep.id === selectedRepresentative.id
-                ? { ...rep, ...editRepresentativeForm }
-                : rep
-            );
-            return { ...vendor, representatives_name: updatedRepresentatives };
+      setLoading(true);
+      setError(null);
+      setSuccess(false);
+
+      const formData = new FormData();
+      
+      // Get user info for registered_by
+      const getUserInfo = () => {
+        try {
+          const sessionUser = sessionStorage.getItem('user');
+          if (sessionUser) {
+            const userData = JSON.parse(sessionUser);
+            return userData;
           }
-          return vendor;
-        })
+    
+          const localUser = localStorage.getItem('user');
+          if (localUser) {
+            const userData = JSON.parse(localUser);
+            return userData;
+          }
+    
+          return {
+            employee_id: 'default_id',
+            employee_name: 'default_user',
+            email: 'default@example.com'
+          };
+        } catch (error) {
+          console.error('Error getting user info:', error);
+          return {
+            employee_id: 'default_id',
+            employee_name: 'default_user',
+            email: 'default@example.com'
+          };
+        }
+      };
+
+      const userInfo = getUserInfo();
+      let registeredById = userInfo.employee_id || userInfo.id;
+
+      // Append all fields to FormData
+      Object.keys(editRepresentativeForm).forEach(key => {
+        if (key === 'visitingCard' && editRepresentativeForm[key]) {
+          formData.append(key, editRepresentativeForm[key]);
+        } else if (key === 'registered_by') {
+          formData.append(key, registeredById);
+        } else if (key !== 'visitingCard') {
+          formData.append(key, editRepresentativeForm[key]);
+        }
+      });
+
+      const response = await api.put(
+        `/vendors/representatives/update/${selectedRepresentative.id}/`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
       );
-      handleCloseEditRepresentativeModal();
-      handleCloseRepresentativeModal();
+
+      if (response.data) {
+        setSuccess(true);
+        // Update the vendors list with the edited representative
+        setVendors(prevVendors =>
+          prevVendors.map(vendor => ({
+            ...vendor,
+            representatives_name: vendor.representatives_name?.map(rep =>
+              rep.id === selectedRepresentative.id ? response.data : rep
+            ) || []
+          }))
+        );
+        handleCloseEditRepresentativeModal();
+        handleCloseRepresentativeModal();
+      }
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || err.message || 'Failed to update representative');
+      setSuccess(false);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -321,44 +455,157 @@ const VendorTable = () => {
   };
 
   const handleShowAddRepresentative = () => {
+    // Get user info for registered_by
+    const getUserInfo = () => {
+      try {
+        const sessionUser = sessionStorage.getItem('user');
+        if (sessionUser) {
+          const userData = JSON.parse(sessionUser);
+          return userData;
+        }
+  
+        const localUser = localStorage.getItem('user');
+        if (localUser) {
+          const userData = JSON.parse(localUser);
+          return userData;
+        }
+  
+        return {
+          employee_id: 'default_id',
+          employee_name: 'default_user',
+          email: 'default@example.com'
+        };
+      } catch (error) {
+        console.error('Error getting user info:', error);
+        return {
+          employee_id: 'default_id',
+          employee_name: 'default_user',
+          email: 'default@example.com'
+        };
+      }
+    };
+
+    const userInfo = getUserInfo();
+    let registeredById = userInfo.employee_id || userInfo.id;
+
     setEditRepresentativeForm({
       name: '',
-      designation: '',
+      deisgnation: '',
       email: '',
       contact_number: '',
       contact_number2: '',
-      registered_by: '',
-      visitingCard: null
+      visitingCard: null,
+      registered_by: registeredById,
+      vendor: selectedVendorForRep.vendorname
     });
     setShowAddRepresentativeModal(true);
   };
 
   const handleCloseAddRepresentativeModal = () => {
     setShowAddRepresentativeModal(false);
+    setEditRepresentativeForm({
+      name: "",
+      deisgnation: "",
+      email: "",
+      contact_number: "",
+      contact_number2: "",
+      visitingCard: null,
+      registered_by: editRepresentativeForm.registered_by,
+      vendor: ""
+    });
+    setValidationErrors({});
+    setError(null);
+    setSuccess(false);
   };
 
-  const handleAddRepresentativeSubmit = (e) => {
+  const handleAddRepresentativeSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedVendor) return;
-    setVendors(prevVendors =>
-      prevVendors.map(vendor => {
-        if (vendor.vendor_id === selectedVendor.vendor_id) {
-          const newRep = {
-            ...editRepresentativeForm,
-            id: Date.now(), 
-            visitingcard: editRepresentativeForm.visitingCard
-          };
+    setError(null);
+    setSuccess(false);
+
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      
+      // Get user info for registered_by
+      const getUserInfo = () => {
+        try {
+          const sessionUser = sessionStorage.getItem('user');
+          if (sessionUser) {
+            const userData = JSON.parse(sessionUser);
+            return userData;
+          }
+    
+          const localUser = localStorage.getItem('user');
+          if (localUser) {
+            const userData = JSON.parse(localUser);
+            return userData;
+          }
+    
           return {
-            ...vendor,
-            representatives_name: vendor.representatives_name
-              ? [...vendor.representatives_name, newRep]
-              : [newRep]
+            employee_id: 'default_id',
+            employee_name: 'default_user',
+            email: 'default@example.com'
+          };
+        } catch (error) {
+          console.error('Error getting user info:', error);
+          return {
+            employee_id: 'default_id',
+            employee_name: 'default_user',
+            email: 'default@example.com'
           };
         }
-        return vendor;
-      })
-    );
-    setShowAddRepresentativeModal(false);
+      };
+
+      const userInfo = getUserInfo();
+      let registeredById = userInfo.employee_id || userInfo.id;
+      
+      // Append all fields to FormData
+      Object.keys(editRepresentativeForm).forEach(key => {
+        if (key === 'visitingCard' && editRepresentativeForm[key]) {
+          formData.append(key, editRepresentativeForm[key]);
+        } else if (key === 'registered_by') {
+          formData.append(key, registeredById);
+        } else if (key !== 'visitingCard') {
+          formData.append(key, editRepresentativeForm[key]);
+        }
+      });
+
+      // Add the vendor name to the form data
+      formData.append('vendor', selectedVendorForRep.vendorname);
+
+      const response = await api.post('/vendors/representatives/create/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data) {
+        setSuccess(true);
+        // Reset form
+        setEditRepresentativeForm({
+          name: "",
+          deisgnation: "",
+          email: "",
+          contact_number: "",
+          contact_number2: "",
+          visitingCard: null,
+          registered_by: registeredById,
+          vendor: ""
+        });
+        handleCloseAddRepresentativeModal();
+        // Refresh the representatives list
+        fetchRepresentatives();
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to add representative');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVendorIdSearch = (e) => {
@@ -376,6 +623,70 @@ const VendorTable = () => {
 
   // Update currentVendors to use filteredVendors when filter is active
   const currentVendors = (vendorIdSearch || showSearch || filteredVendors.length > 0) ? filteredVendors : vendors;
+
+  const validateForm = () => {
+    const errors = {};
+
+    // Name validation
+    if (!editRepresentativeForm.name.trim()) {
+      errors.name = 'Name is required';
+    } else if (editRepresentativeForm.name.length > 30) {
+      errors.name = 'Name must be less than 30 characters';
+    }
+
+    // Email validation
+    if (editRepresentativeForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editRepresentativeForm.email)) {
+      errors.email = 'Invalid email format';
+    } else if (editRepresentativeForm.email && editRepresentativeForm.email.length > 254) {
+      errors.email = 'Email must be less than 254 characters';
+    }
+
+    // Contact number validation
+    if (editRepresentativeForm.contact_number && editRepresentativeForm.contact_number.length > 15) {
+      errors.contact_number = 'Contact number must be less than 15 characters';
+    }
+
+    // Contact number 2 validation
+    if (editRepresentativeForm.contact_number2 && editRepresentativeForm.contact_number2.length > 15) {
+      errors.contact_number2 = 'Alternative contact number must be less than 15 characters';
+    }
+
+    // Designation validation
+    if (editRepresentativeForm.deisgnation && editRepresentativeForm.deisgnation.length > 15) {
+      errors.deisgnation = 'Designation must be less than 15 characters';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleDeleteRepresentative = async (representativeId) => {
+    if (!window.confirm('Are you sure you want to delete this representative?')) return;
+
+    try {
+      setLoading(true);
+      const response = await api.delete(`/vendors/representatives/delete/${representativeId}/`);
+
+      if (response.status === 200 || response.status === 204) {
+        // Update the vendors list to remove the deleted representative
+        setVendors(prevVendors =>
+          prevVendors.map(vendor => ({
+            ...vendor,
+            representatives_name: vendor.representatives_name?.filter(rep => rep.id !== representativeId) || []
+          }))
+        );
+        setSuccess(true);
+        setError(null);
+      } else {
+        throw new Error('Failed to delete representative');
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to delete representative');
+      setSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return <div className="loading">Loading...</div>;
@@ -489,9 +800,33 @@ const VendorTable = () => {
                   <td>{vendor.company_email}</td>
                   <td>{vendor.company_phone_number}</td>
                   <td>
-                    <span className="badge bg-info-transparent">
-                      {vendor.type}
-                    </span>
+                    {Array.isArray(vendor.type) ? (
+                      vendor.type.map((type, index) => {
+                        let badgeClass = 'bg-info-transparent';
+                        switch(type) {
+                          case 'Manufacturer':
+                            badgeClass = 'bg-primary-transparent';
+                            break;
+                          case 'Importer':
+                            badgeClass = 'bg-success-transparent';
+                            break;
+                          case 'Distributor':
+                            badgeClass = 'bg-warning-transparent';
+                            break;
+                          default:
+                            badgeClass = 'bg-info-transparent';
+                        }
+                        return (
+                          <span key={index} className={`badge ${badgeClass} me-1`}>
+                            {type}
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span className="badge bg-info-transparent">
+                        {vendor.type}
+                      </span>
+                    )}
                   </td>
                   <td>
                     {vendor.website ? (
@@ -539,12 +874,12 @@ const VendorTable = () => {
                     {vendor.representatives_name && vendor.representatives_name.length > 0 ? (
                       <button
                         className="btn btn-sm btn-info"
-                        onClick={() => handleShowRepresentative(vendor.representatives_name[0])}
+                        onClick={() => handleShowRepresentative(vendor.representatives_name[0], vendor)}
                       >
-                        View
+                        View ({vendor.representatives_name.length})
                       </button>
                     ) : (
-                      'No Representative'
+                      <span className="text-muted">No Representative</span>
                     )}
                   </td>
                   <td>
@@ -609,17 +944,21 @@ const VendorTable = () => {
         </nav>
       </div>
 
-      {/* Representative Modal */}
-      <Modal show={showRepresentativeModal} onHide={handleCloseRepresentativeModal} centered size="lg" >
+      <Modal show={showRepresentativeModal} onHide={handleCloseRepresentativeModal} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Representative Information</Modal.Title>
         </Modal.Header>
-        <Modal.Body >
-          {selectedRepresentative && (
+        <Modal.Body>
+          {loading ? (
+            <div className="text-center">Loading...</div>
+          ) : error ? (
+            <Alert variant="danger">{error}</Alert>
+          ) : selectedRepresentative && (
             <div className="table-responsive">
               <table className="table text-nowrap">
                 <thead>
                   <tr>
+                    <th scope="col">ID</th>
                     <th scope="col">Name</th>
                     <th scope="col">Designation</th>
                     <th scope="col">Email</th>
@@ -631,63 +970,61 @@ const VendorTable = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>{selectedRepresentative.name}</td>
-                    <td>
-                      <span className="badge bg-info-transparent">
-                        {selectedRepresentative.designation}
-                      </span>
-                    </td>
-                    <td>{selectedRepresentative.email}</td>
-                    <td>{selectedRepresentative.contact_number}</td>
-                    <td>{selectedRepresentative.contact_number2 || 'N/A'}</td>
-                    <td>{selectedRepresentative.registered_by_name}</td>
-                    <td>
-                      {selectedRepresentative.visitingcard ? (
-                        <a
-                          href={selectedRepresentative.visitingcard}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-link btn-sm p-0"
-                        >
-                          {selectedRepresentative.visitingcard.split('/').pop()}
-                        </a>
-                      ) : (
-                        <span className="text-muted">No card</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="hstack gap-2 fs-15">
-                        <button
-                          className="btn btn-icon btn-sm btn-primary"
-                          title="Edit"
-                          onClick={handleShowEditRepresentative}
-                        >
-                          <i className="ri-edit-line"></i>
-                        </button>
-                        <button
-                          className="btn btn-icon btn-sm btn-danger"
-                          title="Delete"
-                          onClick={() => {
-                            if (window.confirm('Are you sure you want to delete this representative?')) {
-                              // Add delete functionality here
-                              console.log('Delete representative:', selectedRepresentative.id);
-                            }
-                          }}
-                        >
-                          <i className="ri-delete-bin-line"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  {selectedVendorForRep.representatives_name.map((rep) => (
+                    <tr key={rep.id}>
+                      <td>{rep.id}</td>
+                      <td>{rep.name}</td>
+                      <td>
+                        <span className="badge bg-info-transparent">
+                          {rep.deisgnation || 'N/A'}
+                        </span>
+                      </td>
+                      <td>{rep.email}</td>
+                      <td>{rep.contact_number}</td>
+                      <td>{rep.contact_number2 || 'N/A'}</td>
+                      <td>{rep.registered_by_name}</td>
+                      <td>
+                        {rep.visitingcard ? (
+                          <a
+                            href={rep.visitingcard}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-link btn-sm p-0"
+                          >
+                            {rep.visitingcard.split('/').pop()}
+                          </a>
+                        ) : (
+                          <span className="text-muted">No card</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="hstack gap-2 fs-15">
+                          <button
+                            className="btn btn-icon btn-sm btn-primary"
+                            title="Edit"
+                            onClick={() => handleShowEditRepresentative(rep)}
+                          >
+                            <i className="ri-edit-line"></i>
+                          </button>
+                          <button
+                            className="btn btn-icon btn-sm btn-danger"
+                            title="Delete"
+                            onClick={() => handleDeleteRepresentative(rep.id)}
+                            disabled={loading}
+                          >
+                            <i className="ri-delete-bin-line"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-            
           )}
         </Modal.Body>
         <Modal.Footer>
-        <Button variant="success" className="ms-3" onClick={handleShowAddRepresentative}>
+          <Button variant="success" className="ms-3" onClick={handleShowAddRepresentative}>
             Add Representative
           </Button>
           <Button variant="secondary" onClick={handleCloseRepresentativeModal}>
@@ -696,12 +1033,13 @@ const VendorTable = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Edit Representative Modal */}
       <Modal show={showEditRepresentativeModal} onHide={handleCloseEditRepresentativeModal} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Edit Representative</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
+          {success && <Alert variant="success" onClose={() => setSuccess(false)} dismissible>Representative updated successfully!</Alert>}
           <Form onSubmit={handleEditRepresentativeSubmit}>
             <Row>
               <Col md={6} className="mb-2">
@@ -719,8 +1057,8 @@ const VendorTable = () => {
                 <Form.Label className="form-label small">Designation</Form.Label>
                 <Form.Control
                   type="text"
-                  name="designation"
-                  value={editRepresentativeForm.designation}
+                  name="deisgnation"
+                  value={editRepresentativeForm.deisgnation}
                   onChange={handleEditRepresentativeFormChange}
                   className="form-control form-control-sm"
                 />
@@ -740,38 +1078,45 @@ const VendorTable = () => {
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Contact Number</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="contact_number"
+                <PhoneInput
+                  country={'pk'}
                   value={editRepresentativeForm.contact_number}
-                  onChange={handleEditRepresentativeFormChange}
-                  className="form-control form-control-sm"
-                  required
+                  onChange={(value) => handleEditRepresentativeFormChange({ target: { name: 'contact_number', value } })}
+                  inputClass="form-control"
+                  containerClass="phone-input-container"
+                  buttonClass="phone-input-button"
+                  inputProps={{
+                    name: 'contact_number',
+                    required: true
+                  }}
                 />
               </Col>
             </Row>
             <Row>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Alternative Contact</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="contact_number2"
+                <PhoneInput
+                  country={'pk'}
                   value={editRepresentativeForm.contact_number2}
-                  onChange={handleEditRepresentativeFormChange}
-                  className="form-control form-control-sm"
+                  onChange={(value) => handleEditRepresentativeFormChange({ target: { name: 'contact_number2', value } })}
+                  inputClass="form-control"
+                  containerClass="phone-input-container"
+                  buttonClass="phone-input-button"
+                  inputProps={{
+                    name: 'contact_number2'
+                  }}
                 />
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Registered By</Form.Label>
-                <Form.Select
+                <Form.Control
+                  type="text"
                   name="registered_by"
-                  value={editRepresentativeForm.registered_by}
-                  onChange={handleEditRepresentativeFormChange}
+                  value={registeredByName}
                   className="form-control form-control-sm"
-                  required
-                >
-                  <option value="">Select Employee</option>
-                </Form.Select>
+                  disabled
+                  readOnly
+                />
               </Col>
             </Row>
             <Row>
@@ -784,7 +1129,11 @@ const VendorTable = () => {
                   className="form-control form-control-sm"
                 />
                 {editRepresentativeForm.visitingCard && (
-                  <small className="text-muted">Current file: {typeof editRepresentativeForm.visitingCard === 'string' ? editRepresentativeForm.visitingCard.split('/').pop() : editRepresentativeForm.visitingCard.name}</small>
+                  <small className="text-muted">
+                    Current file: {typeof editRepresentativeForm.visitingCard === 'string' 
+                      ? editRepresentativeForm.visitingCard.split('/').pop() 
+                      : editRepresentativeForm.visitingCard.name}
+                  </small>
                 )}
               </Col>
             </Row>
@@ -792,15 +1141,14 @@ const VendorTable = () => {
               <Button variant="secondary" onClick={handleCloseEditRepresentativeModal} className="me-2">
                 Cancel
               </Button>
-              <Button variant="primary" type="submit">
-                Save Changes
+              <Button variant="primary" type="submit" disabled={loading}>
+                {loading ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </Form>
         </Modal.Body>
       </Modal>
 
-      {/* Edit Vendor Modal */}
       <Modal show={showEditModal} onHide={handleCloseEditModal} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Edit Vendor</Modal.Title>
@@ -819,7 +1167,6 @@ const VendorTable = () => {
                   required
                   disabled
                   readOnly
-
                 />
               </Col>
               <Col md={6} className="mb-2">
@@ -833,7 +1180,6 @@ const VendorTable = () => {
                   required
                   disabled
                   readOnly
-
                 />
               </Col>
             </Row>
@@ -859,7 +1205,6 @@ const VendorTable = () => {
                   className="form-control form-control-sm"
                   disabled
                   readOnly
-
                 />
               </Col>
             </Row>
@@ -886,7 +1231,7 @@ const VendorTable = () => {
             </Row>
             <Row>
               <Col md={12} className="mb-2">
-              <Form.Label className="form-label small">Product Catalog</Form.Label>
+                <Form.Label className="form-label small">Product Catalog</Form.Label>
                 <Form.Control
                   type="file"
                   className="form-control form-control-sm"
@@ -919,12 +1264,13 @@ const VendorTable = () => {
         </Modal.Body>
       </Modal>
 
-      {/* Add Representative Modal */}
       <Modal show={showAddRepresentativeModal} onHide={handleCloseAddRepresentativeModal} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Add Representative</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
+          {success && <Alert variant="success">Representative added successfully!</Alert>}
           <Form onSubmit={handleAddRepresentativeSubmit}>
             <Row>
               <Col md={6} className="mb-2">
@@ -934,19 +1280,27 @@ const VendorTable = () => {
                   name="name"
                   value={editRepresentativeForm.name}
                   onChange={handleEditRepresentativeFormChange}
-                  className="form-control form-control-sm"
+                  className={`form-control form-control-sm ${validationErrors.name ? 'is-invalid' : ''}`}
                   required
+                  maxLength={30}
                 />
+                {validationErrors.name && (
+                  <div className="invalid-feedback">{validationErrors.name}</div>
+                )}
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Designation</Form.Label>
                 <Form.Control
                   type="text"
-                  name="designation"
-                  value={editRepresentativeForm.designation}
+                  name="deisgnation"
+                  value={editRepresentativeForm.deisgnation}
                   onChange={handleEditRepresentativeFormChange}
-                  className="form-control form-control-sm"
+                  className={`form-control form-control-sm ${validationErrors.deisgnation ? 'is-invalid' : ''}`}
+                  maxLength={15}
                 />
+                {validationErrors.deisgnation && (
+                  <div className="invalid-feedback">{validationErrors.deisgnation}</div>
+                )}
               </Col>
             </Row>
             <Row>
@@ -957,44 +1311,65 @@ const VendorTable = () => {
                   name="email"
                   value={editRepresentativeForm.email}
                   onChange={handleEditRepresentativeFormChange}
-                  className="form-control form-control-sm"
-                  required
+                  className={`form-control form-control-sm ${validationErrors.email ? 'is-invalid' : ''}`}
+                  maxLength={254}
                 />
+                {validationErrors.email && (
+                  <div className="invalid-feedback">{validationErrors.email}</div>
+                )}
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Contact Number</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="contact_number"
+                <PhoneInput
+                  country={'pk'}
                   value={editRepresentativeForm.contact_number}
-                  onChange={handleEditRepresentativeFormChange}
-                  className="form-control form-control-sm"
-                  required
+                  onChange={(value) => handleEditRepresentativeFormChange({ target: { name: 'contact_number', value } })}
+                  inputClass={`form-control ${validationErrors.contact_number ? 'is-invalid' : ''}`}
+                  containerClass="phone-input-container"
+                  buttonClass="phone-input-button"
+                  inputProps={{
+                    name: 'contact_number',
+                    maxLength: 15
+                  }}
                 />
+                {validationErrors.contact_number && (
+                  <div className="invalid-feedback d-block">
+                    {validationErrors.contact_number}
+                  </div>
+                )}
               </Col>
             </Row>
             <Row>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Alternative Contact</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="contact_number2"
+                <PhoneInput
+                  country={'pk'}
                   value={editRepresentativeForm.contact_number2}
-                  onChange={handleEditRepresentativeFormChange}
-                  className="form-control form-control-sm"
+                  onChange={(value) => handleEditRepresentativeFormChange({ target: { name: 'contact_number2', value } })}
+                  inputClass={`form-control ${validationErrors.contact_number2 ? 'is-invalid' : ''}`}
+                  containerClass="phone-input-container"
+                  buttonClass="phone-input-button"
+                  inputProps={{
+                    name: 'contact_number2',
+                    maxLength: 15
+                  }}
                 />
+                {validationErrors.contact_number2 && (
+                  <div className="invalid-feedback d-block">
+                    {validationErrors.contact_number2}
+                  </div>
+                )}
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Registered By</Form.Label>
-                <Form.Select
+                <Form.Control
+                  type="text"
                   name="registered_by"
-                  value={editRepresentativeForm.registered_by}
-                  onChange={handleEditRepresentativeFormChange}
+                  value={registeredByName}
                   className="form-control form-control-sm"
-                  required
-                >
-                  <option value="">Select Employee</option>
-                </Form.Select>
+                  disabled
+                  readOnly
+                />
               </Col>
             </Row>
             <Row>
@@ -1015,8 +1390,8 @@ const VendorTable = () => {
               <Button variant="secondary" onClick={handleCloseAddRepresentativeModal} className="me-2">
                 Cancel
               </Button>
-              <Button variant="primary" type="submit">
-                Add Representative
+              <Button variant="primary" type="submit" disabled={loading}>
+                {loading ? 'Adding...' : 'Add Representative'}
               </Button>
             </div>
           </Form>

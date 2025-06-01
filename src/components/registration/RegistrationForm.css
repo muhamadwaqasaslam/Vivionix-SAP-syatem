@@ -363,4 +363,28 @@
     width: 55px;
     font-size: 0.8rem;
   }
+}
+
+.vendor-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.vendor-search-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.vendor-search-item:hover {
+  background-color: #f8f9fa;
 } 

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Form, Button, InputGroup, Alert } from 'react-bootstrap';
+import { Card, Row, Col, Form, Button, Alert } from 'react-bootstrap';
 import Select from 'react-select';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 import './RegistrationForm.css';
+import api from '../../utils/api';
 
 const VendorRegistrationForm = () => {
   const [vendor, setVendor] = useState({
@@ -13,7 +16,8 @@ const VendorRegistrationForm = () => {
     address: "",
     representatives_name: [],
     productcatalog: null,
-    iso: null
+    iso: null,
+    registered_by: ""
   });
 
   const [representative, setRepresentative] = useState({
@@ -29,27 +33,54 @@ const VendorRegistrationForm = () => {
 
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const [vendors, setVendors] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [validationErrors, setValidationErrors] = useState({});
+  const [registeredByName, setRegisteredByName] = useState("");
 
   useEffect(() => {
-    const fetchVendors = async () => {
+    const getUserInfo = () => {
       try {
-        const response = await fetch('https://my.vivionix.com/vendors/list_all/');
-        if (!response.ok) {
-          throw new Error('Failed to fetch vendors');
+        const sessionUser = sessionStorage.getItem('user');
+        if (sessionUser) {
+          const userData = JSON.parse(sessionUser);
+          return userData;
         }
-        const data = await response.json();
-        setVendors(data);
-      } catch (err) {
-        console.error('Error fetching vendors:', err);
-      } finally {
-        setLoading(false);
+  
+        const localUser = localStorage.getItem('user');
+        if (localUser) {
+          const userData = JSON.parse(localUser);
+          return userData;
+        }
+  
+        return {
+          employee_id: 'default_id',
+          employee_name: 'default_user',
+          email: 'default@example.com'
+        };
+      } catch (error) {
+        console.error('Error getting user info:', error);
+        return {
+          employee_id: 'default_id',
+          employee_name: 'default_user',
+          email: 'default@example.com'
+        };
       }
     };
+  
+    const userInfo = getUserInfo();
+    
+    if (userInfo.employee_name) {
+      setRegisteredByName(userInfo.employee_name);
+    } else if (userInfo.name) {
+      setRegisteredByName(userInfo.name);
+    }
 
-    fetchVendors();
+    if (userInfo.employee_id) {
+      setVendor(prev => ({ ...prev, registered_by: userInfo.employee_id }));
+      setRepresentative(prev => ({ ...prev, registered_by: userInfo.employee_id }));
+    } else if (userInfo.id) {
+      setVendor(prev => ({ ...prev, registered_by: userInfo.id }));
+      setRepresentative(prev => ({ ...prev, registered_by: userInfo.id }));
+    }
   }, []);
 
   const validateForm = () => {
@@ -164,172 +195,141 @@ const VendorRegistrationForm = () => {
     }
   };
 
-  useEffect(() => {
-    const getUserInfo = () => {
-      try {
-        const sessionUser = sessionStorage.getItem('user');
-        if (sessionUser) {
-          const userData = JSON.parse(sessionUser);
-          console.log('User data from session:', userData);
-          return userData;
-        }
-  
-        const localUser = localStorage.getItem('user');
-        if (localUser) {
-          const userData = JSON.parse(localUser);
-          console.log('User data from local storage:', userData);
-          return userData;
-        }
-  
-        return {
-          employee_name: 'default_user',
-          email: 'default@example.com'
-        };
-      } catch (error) {
-        console.error('Error getting user info:', error);
-        return {
-          employee_name: 'default_user',
-          email: 'default@example.com'
-        };
-      }
-    };
-  
-    const userInfo = getUserInfo();
-  
-    // Auto-fill 'registered_by' in representative
-    setRepresentative(prev => ({
-      ...prev,
-      registered_by: userInfo.employee_name || userInfo.employee_id || 'default_user',
-    }));
-  
-    // If you want vendor to be updated too (optional):
+  const handlePhoneChange = (value) => {
     setVendor(prev => ({
       ...prev,
-      registered_by: userInfo.employee_name || userInfo.employee_id || 'default_user',
+      company_phone_number: value
     }));
-  
-  }, []);
-  
- 
+    if (validationErrors.company_phone_number) {
+      setValidationErrors(prev => ({
+        ...prev,
+        company_phone_number: ''
+      }));
+    }
+  };
+
+  const handleRepresentativePhoneChange = (value) => {
+    setRepresentative(prev => ({
+      ...prev,
+      contact_number: value
+    }));
+    if (validationErrors.representative_contact) {
+      setValidationErrors(prev => ({
+        ...prev,
+        representative_contact: ''
+      }));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(false);
-  
+
     if (!validateForm()) {
       return;
     }
-    try {
-      const accessToken = localStorage.getItem("access_token");
-      if (!accessToken) {
-        setError("You're not logged in.");
-        return;
-      }
-  
-      // Step 1: Create vendor
-      const vendorFormData = new FormData();
-  
-      Object.keys(vendor).forEach(key => {
-        if (key !== "productcatalog") {
-          vendorFormData.append(key, vendor[key]);
-        }
-      });
-  
-      if (vendor.productcatalog) {
-        vendorFormData.append("productcatalog", vendor.productcatalog);
-      }
-  
-      vendorFormData.append("is_vendor", true);
-  
-      const vendorResponse = await fetch("https://my.vivionix.com/vendors/create/", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: vendorFormData,
-      });
-  
-      if (!vendorResponse.ok) {
-        const errorText = await vendorResponse.text();
-        throw new Error("Vendor creation failed: " + errorText);
-      }
-  
-      const vendorData = await vendorResponse.json();
-      const createdVendorName = vendorData.vendorname;
-      // repFormData.append("vendor", vendorData.vendorname); // TEMP FIX
 
-      // Step 2: Create representative linked to vendor
-      const repFormData = new FormData();
-  
-      Object.keys(representative).forEach((key) => {
-        if (key !== "visitingCard") {
-          repFormData.append(key, representative[key]);
+    try {
+      // Create the request body
+      const requestBody = {
+        vendorname: vendor.vendorname,
+        company_email: vendor.company_email,
+        type: vendor.type,
+        website: vendor.website,
+        company_phone_number: vendor.company_phone_number,
+        address: vendor.address,
+        registered_by: vendor.registered_by,
+        representatives_name: [{
+          name: representative.name,
+          designation: representative.designation,
+          email: representative.email,
+          contact_number: representative.contact_number,
+          contact_number2: representative.contact_number2,
+          visitingCard: representative.visitingCard,
+          registered_by: vendor.registered_by
+        }],
+        productcatalog: vendor.productcatalog,
+        iso: vendor.iso
+      };
+
+      // Create FormData for file uploads
+      const formData = new FormData();
+      
+      // Append all non-file fields
+      Object.keys(requestBody).forEach(key => {
+        if (key === 'representatives_name') {
+          formData.append(key, JSON.stringify(requestBody[key]));
+        } else if (key === 'type') {
+          // Handle type array - append each type separately with exact casing
+          requestBody[key].forEach(type => {
+            formData.append('type', type);
+          });
+        } else if (key !== 'productcatalog' && key !== 'iso') {
+          formData.append(key, requestBody[key]);
         }
       });
-  
+
+      // Append files if they exist
+      if (vendor.productcatalog) {
+        formData.append('productcatalog', vendor.productcatalog);
+      }
+      if (vendor.iso) {
+        formData.append('iso', vendor.iso);
+      }
       if (representative.visitingCard) {
-        repFormData.append("visitingCard", representative.visitingCard);
+        formData.append('visitingCard', representative.visitingCard);
       }
-  
-      repFormData.append("vendor", createdVendorName); // link representative to vendor
-  
-      const repResponse = await fetch("https://my.vivionix.com/vendors/representatives/create/", {
-        method: "POST",
+
+      const response = await api.post('/vendors/create/', formData, {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: repFormData,
+          'Content-Type': 'multipart/form-data'
+        }
       });
-  
-      if (!repResponse.ok) {
-        const errorText = await repResponse.text();
-        throw new Error("Representative creation failed: " + errorText);
+
+      if (response.data) {
+        // Reset form on success
+        setSuccess(true);
+        setVendor({
+          vendorname: "",
+          company_email: "",
+          type: [],
+          website: "",
+          company_phone_number: "",
+          address: "",
+          representatives_name: [],
+          productcatalog: null,
+          iso: null,
+          registered_by: ""
+        });
+        setRepresentative({
+          name: "",
+          designation: "",
+          email: "",
+          contact_number: "",
+          contact_number2: "",
+          visitingCard: "",
+          registered_by: ""
+        });
+        setValidationErrors({});
       }
-  
-      // Reset form on success
-      setSuccess(true);
-      setVendor({
-        vendorname: "",
-        company_email: "",
-        type: [],
-        website: "",
-        company_phone_number: "",
-        address: "",
-        representatives_name: [],
-        productcatalog: null,
-      });
-      setRepresentative({
-        name: "",
-        designation: "",
-        email: "",
-        contact_number: "",
-        contact_number2: "",
-        visitingCard: "",
-        registered_by: "",
-        vendor: "",
-      });
-      setValidationErrors({});
-  
+
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || err.message || 'Failed to create vendor');
     }
   };
   
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
   
 
   return (
     <div className="registration-container">
-      <h3 className="registration-heading">Vendor Registration</h3>
-
-      {error && <div className="alert alert-danger">{error}</div>}
-      {success && <div className="alert alert-success">Vendor and representative registered successfully!</div>}
-
       <Card>
+        <Card.Header className="registration-header">
+          <h2 className="registration-title">Vendor Registration</h2>
+        </Card.Header>
         <Card.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
+          {success && <Alert variant="success">Vendor and representative registered successfully!</Alert>}
           <Form onSubmit={handleSubmit}>
             <Row>
               <Col md={6} className="mb-2">
@@ -361,18 +361,23 @@ const VendorRegistrationForm = () => {
                 )}
               </Col>
 
-              <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Contact Number</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="company_phone_number"
+              <Col md={6} className="mb-3">
+                <Form.Label>Company Phone Number</Form.Label>
+                <PhoneInput
+                  country={'pk'}
                   value={vendor.company_phone_number}
-                  onChange={handleVendorChange}
-                  className={`form-control form-control-sm ${validationErrors.company_phone_number ? 'is-invalid' : ''}`}
-                  required
+                  onChange={handlePhoneChange}
+                  inputClass={`form-control ${validationErrors.company_phone_number ? 'is-invalid' : ''}`}
+                  containerClass="phone-input-container"
+                  buttonClass="phone-input-button"
+                  inputProps={{
+                    name: 'company_phone_number',
+                  }}
                 />
                 {validationErrors.company_phone_number && (
-                  <div className="invalid-feedback">{validationErrors.company_phone_number}</div>
+                  <div className="invalid-feedback d-block">
+                    {validationErrors.company_phone_number}
+                  </div>
                 )}
               </Col>
               <Col md={6} className="mb-2">
@@ -397,9 +402,9 @@ const VendorRegistrationForm = () => {
                   value={vendor.type.map(type => ({ value: type, label: type }))}
                   onChange={handleTypeChange}
                   options={[
-                    { value: 'manufacturer', label: 'Manufacturer' },
-                    { value: 'importer', label: 'Importer' },
-                    { value: 'distributor', label: 'Distributor' }
+                    { value: 'Manufacturer', label: 'Manufacturer' },
+                    { value: 'Importer', label: 'Importer' },
+                    { value: 'Distributor', label: 'Distributor' }
                   ]}
                   className={`${validationErrors.type ? 'is-invalid' : ''}`}
                   classNamePrefix="select"
@@ -444,21 +449,23 @@ const VendorRegistrationForm = () => {
               </Col>
 
               <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Registered By</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="registered_by"
+                  value={registeredByName}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+
+              <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Product Catalog</Form.Label>
                 <Form.Control
                   type="file"
                   name="productcatalog"
                   onChange={(e) => handleFileChange(e, 'productcatalog')}
-                  className="form-control form-control-sm"
-                />
-              </Col>
-
-              <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">ISO</Form.Label>
-                <Form.Control
-                  type="file"
-                  name="iso"
-                  onChange={(e) => handleFileChange(e, 'iso')}
                   className="form-control form-control-sm"
                 />
               </Col>
@@ -535,44 +542,40 @@ const VendorRegistrationForm = () => {
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Contact Number</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="contact_number"
+                <PhoneInput
+                  country={'pk'}
                   value={representative.contact_number}
-                  onChange={handleRepresentativeChange}
-                  className={`form-control form-control-sm ${validationErrors.representative_contact ? 'is-invalid' : ''}`}
-                  required
+                  onChange={handleRepresentativePhoneChange}
+                  inputClass={`form-control ${validationErrors.representative_contact ? 'is-invalid' : ''}`}
+                  containerClass="phone-input-container"
+                  buttonClass="phone-input-button"
+                  inputProps={{
+                    name: 'contact_number',
+                  }}
                 />
                 {validationErrors.representative_contact && (
-                  <div className="invalid-feedback">{validationErrors.representative_contact}</div>
+                  <div className="invalid-feedback d-block">
+                    {validationErrors.representative_contact}
+                  </div>
                 )}
               </Col>
 
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Alternative Contact Number</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="contact_number2"
+                <PhoneInput
+                  country={'pk'}
                   value={representative.contact_number2}
-                  onChange={handleRepresentativeChange}
-                  className="form-control form-control-sm"
+                  onChange={(value) => setRepresentative(prev => ({
+                    ...prev,
+                    contact_number2: value
+                  }))}
+                  inputClass="form-control"
+                  containerClass="phone-input-container"
+                  buttonClass="phone-input-button"
+                  inputProps={{
+                    name: 'contact_number2',
+                  }}
                 />
-              </Col>
-              <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Registered By</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="registered_by"
-                  value={representative.registered_by}
-                  onChange={handleRepresentativeChange}
-                  className={`form-control form-control-sm ${validationErrors.representative_registered_by ? 'is-invalid' : ''}`}
-                  required
-                  disabled
-                  readOnly
-                />
-                {validationErrors.representative_registered_by && (
-                  <div className="invalid-feedback">{validationErrors.representative_registered_by}</div>
-                )}
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Visiting Card</Form.Label>

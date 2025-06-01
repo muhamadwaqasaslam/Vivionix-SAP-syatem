@@ -13,6 +13,14 @@ import ProductRegistration from './components/registration/ProductRegistrationFo
 import ProductTable from './components/Table/ProductTable';
 import VendorRegistration from './components/registration/VendorRegistrationForm';
 import VendorTable from './components/Table/VendorTable';
+import RepresentativeRegistration from './components/registration/RepresentativeRegistrationForm';
+import RepresentativeTable from './components/Table/RepresentativeTable';
+import CustomerRepresentativeForm from './components/registration/CustomerRepresentativeForm';
+import CustomerRepresentativeTable from './components/Table/CustomerRepresentativeTable';
+import OrderDetailRegistrationForm from './components/registration/OrderDetailRegistrationForm';
+import OrderDetailTable from './components/Table/OrderDetailTable';
+import CustomerProductRegistrationForm from './components/registration/CustomerProductRegistrationForm';
+import CustomerProductTable from './components/Table/CustomerProductTable';
 import LoginPage from './LoginPage';
 import SignUpPage from './SignUp';
 import ForgetPassword from './Forgetpassword';
@@ -23,6 +31,10 @@ import StockLedger from './components/Table/StockLedger';
 import CreateDC from './components/registration/CreateDC';
 import ListOfDC from './components/Table/ListOfDC';
 import PendingApprovals from './components/Table/PendingApprovals';
+
+// Employee Department Role Components
+import EmployeeDepartmentRoleForm from './components/registration/EmployeeDepartmentRoleForm';
+import EmployeeDepartmentRoleTable from './components/Table/EmployeeDepartmentRoleTable';
 
 function App() {
   return (
@@ -48,6 +60,14 @@ function App() {
           <Route path="product-table" element={<ProductTable />} />
           <Route path="vendor-registration" element={<VendorRegistration />} />
           <Route path="vendor-table" element={<VendorTable />} />
+          <Route path="representative-registration" element={<RepresentativeRegistration />} />
+          <Route path="representative-table" element={<RepresentativeTable />} />
+          <Route path="customer-representative-registration" element={<CustomerRepresentativeForm />} />
+          <Route path="customer-representatives" element={<CustomerRepresentativeTable />} />
+          <Route path="order-detail-registration" element={<OrderDetailRegistrationForm />} />
+          <Route path="order-detail-table" element={<OrderDetailTable />} />
+          <Route path="customer-product-registration" element={<CustomerProductRegistrationForm />} />
+          <Route path="customer-product-table" element={<CustomerProductTable />} />
           
           {/* Store Module Routes */}
           <Route path="stock-list" element={<StockList />} />
@@ -55,6 +75,10 @@ function App() {
           <Route path="create-dc" element={<CreateDC />} />
           <Route path="list-of-dc" element={<ListOfDC />} />
           <Route path="pending-approvals" element={<PendingApprovals />} />
+
+          {/* Employee Department Role Routes */}
+          <Route path="employee-department-role" element={<EmployeeDepartmentRoleForm />} />
+          <Route path="employee-department-role-list" element={<EmployeeDepartmentRoleTable />} />
         </Route>
       </Routes>
     </BrowserRouter>

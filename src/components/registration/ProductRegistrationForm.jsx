@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Form, Button } from 'react-bootstrap';
+import { Card, Row, Col, Form, Button, Alert } from 'react-bootstrap';
 import Select from 'react-select';
 import api from '../../utils/api';
 import './RegistrationForm.css';
@@ -294,13 +294,13 @@ const ProductRegistrationForm = () => {
 
   return (
     <div className="registration-container">
-      <h3 className="registration-heading">Product Registration</h3>
-      
-      {error && <div className="alert alert-danger">{error}</div>}
-      {success && <div className="alert alert-success">Product registered successfully!</div>}
-
       <Card>
+        <Card.Header className="registration-header">
+          <h2 className="registration-title">Product Registration</h2>
+        </Card.Header>
         <Card.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
+          {success && <Alert variant="success">Product registered successfully!</Alert>}
           <Form onSubmit={handleSubmit}>
             <Row>
               <Col md={6} className="mb-2">

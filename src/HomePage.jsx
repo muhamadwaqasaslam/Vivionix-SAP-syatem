@@ -14,7 +14,8 @@ import {
   FaExpand,
   FaEdit,
   FaCogs,
-  FaWarehouse
+  FaWarehouse,
+  FaUsers
 } from "react-icons/fa";
 
 import { AlignLeft, Search } from "lucide-react";
@@ -29,12 +30,16 @@ import EmployeeRegistration from "./components/registration/EmployeeRegistration
 import CustomerRegistration from "./components/registration/CustomerRegistrationForm";
 import ProductRegistration from "./components/registration/ProductRegistrationForm";
 import VendorRegistration from "./components/registration/VendorRegistrationForm";
+import RepresentativeRegistration from "./components/registration/RepresentativeRegistrationForm";
+import CustomerRepresentativeForm from "./components/registration/CustomerRepresentativeForm";
 
 // Tables
 import EmployeeTable from './components/Table/EmployeeTable';
 import CustomerTable from './components/Table/CustomerTable';
 import ProductTable from './components/Table/ProductTable';
 import VendorTable from './components/Table/VendorTable';
+import RepresentativeTable from './components/Table/RepresentativeTable';
+import CustomerRepresentativeTable from './components/Table/CustomerRepresentativeTable';
 
 // Store Components
 import StockList from "./components/Table/StockList";
@@ -163,6 +168,10 @@ const HomePage = () => {
         return <VendorRegistration />;
       case "Vendor Table":
         return <VendorTable />;
+      case "Representative Registration":
+        return <RepresentativeRegistration />;
+      case "Representative Table":
+        return <RepresentativeTable />;
       case "Stock List":
         return <StockList />;
       case "Stock Ledger":
@@ -173,6 +182,10 @@ const HomePage = () => {
         return <ListOfDC />;
       case "Pending Approvals":
         return <PendingApprovals />;
+      case "Customer Representative Registration":
+        return <CustomerRepresentativeForm />;
+      case "Customer Representative Table":
+        return <CustomerRepresentativeTable />;
       default:
         return <Dashboard />;
     }
@@ -237,9 +250,47 @@ const HomePage = () => {
           {activeDropdown === "Employee" && (
             <div className="sidebar-submenu">
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Registration")}>
-              <Link to="/home/employee-registration" className="sidebar-link">Employee Registration</Link>              </div>
+                <Link to="/home/employee-registration" className="sidebar-link">Employee Registration</Link>
+              </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Table")}>
                 <Link to="/home/employee-table" className="sidebar-link">Employee List</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Department Role")}>
+                <Link to="/home/employee-department-role" className="sidebar-link">Assign Department Role</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Department Role List")}>
+                <Link to="/home/employee-department-role-list" className="sidebar-link">Department Role List</Link>
+              </div>
+            </div>
+          )}
+
+          {/* Employee-Department-Role Section */}
+          <div className="sidebar-item" onClick={() => toggleDropdown("EmployeeDepartmentRole")}>
+            <FaUsers size={14} />
+            {!isSidebarCollapsed && <span className="items">Employee-Department-Role</span>}
+            {!isSidebarCollapsed && (
+              <span style={{ marginLeft: "70px" }}>
+                {activeDropdown === "EmployeeDepartmentRole" ? (
+                  <FaChevronDown className="dropdown-icon" />
+                ) : (
+                  <FaChevronRight className="dropdown-icon" />
+                )}
+              </span>
+            )}
+          </div>
+          {activeDropdown === "EmployeeDepartmentRole" && (
+            <div className="sidebar-submenu">
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Department Registration")}>
+                <Link to="/home/department-registration" className="sidebar-link">Department Registration</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Role Registration")}>
+                <Link to="/home/role-registration" className="sidebar-link">Role Registration</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Department List")}>
+                <Link to="/home/department-list" className="sidebar-link">Department List</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Role List")}>
+                <Link to="/home/role-list" className="sidebar-link">Role List</Link>
               </div>
             </div>
           )}
@@ -269,6 +320,31 @@ const HomePage = () => {
             </div>
           )}
 
+          {/* Representative Section */}
+          <div className="sidebar-item" onClick={() => toggleDropdown("Representative")}>
+            <FaUsers size={14} />
+            {!isSidebarCollapsed && <span className="items">Representative</span>}
+            {!isSidebarCollapsed && (
+              <span style={{ marginLeft: "70px" }}>
+                {activeDropdown === "Representative" ? (
+                  <FaChevronDown className="dropdown-icon" />
+                ) : (
+                  <FaChevronRight className="dropdown-icon" />
+                )}
+              </span>
+            )}
+          </div>
+          {activeDropdown === "Representative" && (
+            <div className="sidebar-submenu">
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Representative Registration")}>
+                <Link to="/home/representative-registration" className="sidebar-link">Representative Registration</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Representative Table")}>
+                <Link to="/home/representative-table" className="sidebar-link">Representative List</Link>
+              </div>
+            </div>
+          )}
+
           {/* Customer Section */}
           <div className="sidebar-item" onClick={() => toggleDropdown("Customer")}>
             <FaUser size={14} />
@@ -294,6 +370,31 @@ const HomePage = () => {
             </div>
           )}
 
+          {/* Customer Representative Section */}
+          <div className="sidebar-item" onClick={() => toggleDropdown("CustomerRepresentative")}>
+            <FaUsers size={14} />
+            {!isSidebarCollapsed && <span className="items">Customer Representative</span>}
+            {!isSidebarCollapsed && (
+              <span style={{ marginLeft: "70px" }}>
+                {activeDropdown === "CustomerRepresentative" ? (
+                  <FaChevronDown className="dropdown-icon" />
+                ) : (
+                  <FaChevronRight className="dropdown-icon" />
+                )}
+              </span>
+            )}
+          </div>
+          {activeDropdown === "CustomerRepresentative" && (
+            <div className="sidebar-submenu">
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Customer Representative Registration")}>
+                <Link to="/home/customer-representative-registration" className="sidebar-link">Representative Registration</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Customer Representative Table")}>
+                <Link to="/home/customer-representatives" className="sidebar-link">Representative List</Link>
+              </div>
+            </div>
+          )}
+
           {/* Product Section */}
           <div className="sidebar-item" onClick={() => toggleDropdown("Product")}>
             <FaBox size={14} />
@@ -315,6 +416,56 @@ const HomePage = () => {
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Product Table")}>
                 <Link to="/home/product-table" className="sidebar-link">Product List</Link>
+              </div>
+            </div>
+          )}
+
+          {/* Order Detail Section */}
+          <div className="sidebar-item" onClick={() => toggleDropdown("OrderDetail")}>
+            <FaBox size={14} />
+            {!isSidebarCollapsed && <span className="items">Order Detail</span>}
+            {!isSidebarCollapsed && (
+              <span style={{ marginLeft: "62px" }}>
+                {activeDropdown === "OrderDetail" ? (
+                  <FaChevronDown className="dropdown-icon" />
+                ) : (
+                  <FaChevronRight className="dropdown-icon" />
+                )}
+              </span>
+            )}
+          </div>
+          {activeDropdown === "OrderDetail" && (
+            <div className="sidebar-submenu">
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Order Detail Registration")}>
+                <Link to="/home/order-detail-registration" className="sidebar-link">Order Detail Registration</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Order Detail Table")}>
+                <Link to="/home/order-detail-table" className="sidebar-link">Order Detail List</Link>
+              </div>
+            </div>
+          )}
+
+          {/* Customer Product Section */}
+          <div className="sidebar-item" onClick={() => toggleDropdown("CustomerProduct")}>
+            <FaBox size={14} />
+            {!isSidebarCollapsed && <span className="items">Customer Product</span>}
+            {!isSidebarCollapsed && (
+              <span style={{ marginLeft: "62px" }}>
+                {activeDropdown === "CustomerProduct" ? (
+                  <FaChevronDown className="dropdown-icon" />
+                ) : (
+                  <FaChevronRight className="dropdown-icon" />
+                )}
+              </span>
+            )}
+          </div>
+          {activeDropdown === "CustomerProduct" && (
+            <div className="sidebar-submenu">
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Customer Product Registration")}>
+                <Link to="/home/customer-product-registration" className="sidebar-link small">Customer Product Registration</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Customer Product Table")}>
+                <Link to="/home/customer-product-table" className="sidebar-link small">Customer Product List</Link>
               </div>
             </div>
           )}

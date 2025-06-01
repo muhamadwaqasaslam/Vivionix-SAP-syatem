@@ -1,27 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Form, Button } from 'react-bootstrap';
+import { Card, Row, Col, Form, Button, Alert } from 'react-bootstrap';
+import api from '../../utils/api';
 import './RegistrationForm.css';
 
 const CustomerRegistrationForm = () => {
+  // Function to get user info from session or local storage
+  const getUserInfo = () => {
+    try {
+      const sessionUser = sessionStorage.getItem('user');
+      if (sessionUser) {
+        const userData = JSON.parse(sessionUser);
+        console.log('User data from session:', userData);
+        return userData;
+      }
+
+      const localUser = localStorage.getItem('user');
+      if (localUser) {
+        const userData = JSON.parse(localUser);
+        console.log('User data from local storage:', userData);
+        return userData;
+      }
+
+      // Fallback if no user data found
+      return {
+        employee_name: 'default_user',
+        employee_id: null // Assuming ID might be null if not logged in
+      };
+    } catch (error) {
+      console.error('Error getting user info:', error);
+      // Return fallback on error
+      return {
+        employee_name: 'error_user',
+        employee_id: null
+      };
+    }
+  };
+
   const [customer, setCustomer] = useState({
-    customername: "",
-    company_email: "",
-    type: null,
-    website: "",
-    company_phone_number: "",
+    Companyname: "",
+    Companyemail: "",
+    type: "",
+    category: "",
+    capacity: "",
+    Company_phone_number: "",
     address: "",
-    representatives_name: [],
-    productcatalog: null
+    city: "",
+    representative: []
   });
 
   const [representative, setRepresentative] = useState({
-    name: "",
+    Contact_person_name: "",
+    title: "",
+    education: "",
     designation: "",
-    email: "",
-    contact_number: "",
-    contact_number2: "",
-    visitingCard: "",
-    registered_by: "",
+    qualification: "",
+    Contact_person_email: "",
+    Contact_person_number: "",
+    registered_by: getUserInfo().employee_id || "",
     customer: ""
   });
 
@@ -33,30 +68,26 @@ const CustomerRegistrationForm = () => {
   const validateForm = () => {
     const errors = {};
 
-    // Customer Name validation
-    if (!customer.customername.trim()) {
-      errors.customername = 'Customer name is required';
-    } else if (customer.customername.length < 2) {
-      errors.customername = 'Customer name must be at least 2 characters';
+    // Company Name validation
+    if (!customer.Companyname.trim()) {
+      errors.Companyname = 'Company name is required';
     }
 
     // Company Email validation
-    if (!customer.company_email.trim()) {
-      errors.company_email = 'Company email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.company_email)) {
-      errors.company_email = 'Invalid email format';
+    if (!customer.Companyemail.trim()) {
+      errors.Companyemail = 'Company email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.Companyemail)) {
+      errors.Companyemail = 'Invalid email format';
     }
 
     // Company Phone Number validation
-    if (!customer.company_phone_number.trim()) {
-      errors.company_phone_number = 'Phone number is required';
-    } else if (!/^[0-9]{10,15}$/.test(customer.company_phone_number.replace(/\D/g, ''))) {
-      errors.company_phone_number = 'Invalid phone number format';
+    if (!customer.Company_phone_number.trim()) {
+      errors.Company_phone_number = 'Phone number is required';
     }
 
-    // Website validation (optional)
-    if (customer.website && !/^https?:\/\/.+/.test(customer.website)) {
-      errors.website = 'Invalid website URL';
+    // Category validation
+    if (!customer.category) {
+      errors.category = 'Category is required';
     }
 
     // Type validation
@@ -64,27 +95,35 @@ const CustomerRegistrationForm = () => {
       errors.type = 'Type is required';
     }
 
+    // Capacity validation
+    if (!customer.capacity) {
+      errors.capacity = 'Capacity is required';
+    }
+
+    // City validation
+    if (!customer.city.trim()) {
+      errors.city = 'City is required';
+    }
+
     // Address validation
     if (!customer.address.trim()) {
       errors.address = 'Address is required';
     }
 
-    // Representative validation
-    if (!representative.name.trim()) {
-      errors.representative_name = 'Representative name is required';
+    // Representative validations
+    if (!representative.Contact_person_name.trim()) {
+      errors.Contact_person_name = 'Contact person name is required';
     }
-    if (!representative.email.trim()) {
-      errors.representative_email = 'Representative email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(representative.email)) {
-      errors.representative_email = 'Invalid email format';
+    if (!representative.Contact_person_email.trim()) {
+      errors.Contact_person_email = 'Contact person email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(representative.Contact_person_email)) {
+      errors.Contact_person_email = 'Invalid email format';
     }
-    if (!representative.contact_number.trim()) {
-      errors.representative_contact = 'Contact number is required';
-    } else if (!/^[0-9]{10,15}$/.test(representative.contact_number.replace(/\D/g, ''))) {
-      errors.representative_contact = 'Invalid phone number format';
+    if (!representative.Contact_person_number.trim()) {
+      errors.Contact_person_number = 'Contact number is required';
     }
     if (!representative.registered_by.trim()) {
-      errors.representative_registered_by = 'Registered by is required';
+      errors.registered_by = 'Registered by is required';
     }
 
     setValidationErrors(errors);
@@ -97,7 +136,6 @@ const CustomerRegistrationForm = () => {
       ...prev,
       [name]: value
     }));
-    // Clear validation error when user types
     if (validationErrors[name]) {
       setValidationErrors(prev => ({
         ...prev,
@@ -114,21 +152,6 @@ const CustomerRegistrationForm = () => {
     }));
   };
 
-  const handleFileChange = (e, field) => {
-    const file = e.target.files[0];
-    if (field === 'productcatalog') {
-      setCustomer(prev => ({
-        ...prev,
-        [field]: file
-      }));
-    } else if (field === 'visitingCard') {
-      setRepresentative(prev => ({
-        ...prev,
-        [field]: file
-      }));
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -139,46 +162,68 @@ const CustomerRegistrationForm = () => {
     }
 
     try {
-      const formData = new FormData();
-      Object.keys(customer).forEach(key => {
-        formData.append(key, customer[key]);
-      });
-      formData.append('is_customer', true);
-      formData.append('representative', JSON.stringify(representative));
+      const currentUser = getUserInfo();
+      // Create the complete data object
+      const submitData = {
+        Companyname: customer.Companyname,
+        Companyemail: customer.Companyemail,
+        type: customer.type,
+        category: customer.category,
+        capacity: customer.capacity,
+        Company_phone_number: customer.Company_phone_number,
+        address: customer.address,
+        city: customer.city,
+        registered_by: currentUser.employee_id,
+        representative: {
+          Contact_person_name: representative.Contact_person_name,
+          title: representative.title,
+          education: representative.education,
+          designation: representative.designation,
+          qualification: representative.qualification,
+          Contact_person_email: representative.Contact_person_email,
+          Contact_person_number: representative.Contact_person_number,
+          registered_by: currentUser.employee_id
+        }
+      };
 
-      const response = await fetch('https://my.vivionix.com/customers/create/', {
-        method: 'POST',
-        body: formData,
+      console.log('Data being sent:', submitData);
+
+      const response = await api.post('/customers/customer/create/', submitData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to register customer');
+      if (response.status === 201 || response.status === 200) {
+        setSuccess(true);
+        // Reset form
+        setCustomer({
+          Companyname: "",
+          Companyemail: "",
+          type: "",
+          category: "",
+          capacity: "",
+          Company_phone_number: "",
+          address: "",
+          city: "",
+          representative: []
+        });
+        setRepresentative({
+          Contact_person_name: "",
+          title: "",
+          education: "",
+          designation: "",
+          qualification: "",
+          Contact_person_email: "",
+          Contact_person_number: "",
+          registered_by: currentUser.employee_id || "",
+          customer: ""
+        });
+        setValidationErrors({});
       }
-
-      setSuccess(true);
-      setCustomer({
-        customername: "",
-        company_email: "",
-        type: null,
-        website: "",
-        company_phone_number: "",
-        address: "",
-        representatives_name: [],
-        productcatalog: null
-      });
-      setRepresentative({
-        name: "",
-        designation: "",
-        email: "",
-        contact_number: "",
-        contact_number2: "",
-        visitingCard: "",
-        registered_by: "",
-        customer: ""
-      });
-      setValidationErrors({});
     } catch (err) {
-      setError(err.message);
+      console.error('Error response:', err.response?.data);
+      setError(err.response?.data?.detail || 'Failed to register customer');
     }
   };
 
@@ -188,41 +233,41 @@ const CustomerRegistrationForm = () => {
 
   return (
     <div className="registration-container">
-      <h3 className="registration-heading">Customer Registration</h3>
-
-      {error && <div className="alert alert-danger">{error}</div>}
-      {success && <div className="alert alert-success">Customer registered successfully!</div>}
-
       <Card>
+        <Card.Header className="registration-header">
+          <h2 className="registration-title">Customer Registration</h2>
+        </Card.Header>
         <Card.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
+          {success && <Alert variant="success">Customer registered successfully!</Alert>}
           <Form onSubmit={handleSubmit}>
             <Row>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Customer Name</Form.Label>
+                <Form.Label className="form-label small">Company Name</Form.Label>
                 <Form.Control
                   type="text"
-                  name="customername"
-                  value={customer.customername}
+                  name="Companyname"
+                  value={customer.Companyname}
                   onChange={handleCustomerChange}
-                  className={`form-control form-control-sm ${validationErrors.customername ? 'is-invalid' : ''}`}
+                  className={`form-control form-control-sm ${validationErrors.Companyname ? 'is-invalid' : ''}`}
                   required
                 />
-                {validationErrors.customername && (
-                  <div className="invalid-feedback">{validationErrors.customername}</div>
+                {validationErrors.Companyname && (
+                  <div className="invalid-feedback">{validationErrors.Companyname}</div>
                 )}
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Company Email</Form.Label>
                 <Form.Control
                   type="email"
-                  name="company_email"
-                  value={customer.company_email}
+                  name="Companyemail"
+                  value={customer.Companyemail}
                   onChange={handleCustomerChange}
-                  className={`form-control form-control-sm ${validationErrors.company_email ? 'is-invalid' : ''}`}
+                  className={`form-control form-control-sm ${validationErrors.Companyemail ? 'is-invalid' : ''}`}
                   required
                 />
-                {validationErrors.company_email && (
-                  <div className="invalid-feedback">{validationErrors.company_email}</div>
+                {validationErrors.Companyemail && (
+                  <div className="invalid-feedback">{validationErrors.Companyemail}</div>
                 )}
               </Col>
 
@@ -230,24 +275,25 @@ const CustomerRegistrationForm = () => {
                 <Form.Label className="form-label small">Contact Number</Form.Label>
                 <Form.Control
                   type="tel"
-                  name="company_phone_number"
-                  value={customer.company_phone_number}
+                  name="Company_phone_number"
+                  value={customer.Company_phone_number}
                   onChange={handleCustomerChange}
-                  className={`form-control form-control-sm ${validationErrors.company_phone_number ? 'is-invalid' : ''}`}
+                  className={`form-control form-control-sm ${validationErrors.Company_phone_number ? 'is-invalid' : ''}`}
                   required
                 />
-                {validationErrors.company_phone_number && (
-                  <div className="invalid-feedback">{validationErrors.company_phone_number}</div>
+                {validationErrors.Company_phone_number && (
+                  <div className="invalid-feedback">{validationErrors.Company_phone_number}</div>
                 )}
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">City</Form.Label>
                 <Form.Control
-                  type="url"
+                  type="text"
                   name="city"
                   value={customer.city}
                   onChange={handleCustomerChange}
                   className={`form-control form-control-sm ${validationErrors.city ? 'is-invalid' : ''}`}
+                  required
                 />
                 {validationErrors.city && (
                   <div className="invalid-feedback">{validationErrors.city}</div>
@@ -260,12 +306,12 @@ const CustomerRegistrationForm = () => {
                   name="category"
                   value={customer.category}
                   onChange={handleCustomerChange}
-                  className={`form-control form-control-sm search-panel small ${validationErrors.category ? 'is-invalid' : ''}`}
+                  className={`form-control form-control-sm ${validationErrors.category ? 'is-invalid' : ''}`}
                   required
                 >
-                  <option value="" className="small">Select Category</option>
-                  <option value="private" className="small">Private</option>
-                  <option value="public" className="small">Public</option>
+                  <option value="">Select Category</option>
+                  <option value="Private">Private</option>
+                  <option value="Public">Public</option>
                 </Form.Select>
                 {validationErrors.category && (
                   <div className="invalid-feedback">{validationErrors.category}</div>
@@ -278,12 +324,12 @@ const CustomerRegistrationForm = () => {
                   name="type"
                   value={customer.type}
                   onChange={handleCustomerChange}
-                  className={`form-control form-control-sm search-panel small ${validationErrors.type ? 'is-invalid' : ''}`}
+                  className={`form-control form-control-sm ${validationErrors.type ? 'is-invalid' : ''}`}
                   required
                 >
-                  <option value="" className="small">Select Type</option>
-                  <option value="hospital" className="small">Hospital</option>
-                  <option value="clinic" className="small">Clinic</option>
+                  <option value="">Select Type</option>
+                  <option value="Hospital">Hospital</option>
+                  <option value="Clinic">Clinic</option>
                 </Form.Select>
                 {validationErrors.type && (
                   <div className="invalid-feedback">{validationErrors.type}</div>
@@ -296,29 +342,17 @@ const CustomerRegistrationForm = () => {
                   name="capacity"
                   value={customer.capacity}
                   onChange={handleCustomerChange}
-                  className={`form-control form-control-sm search-panel small ${validationErrors.capacity ? 'is-invalid' : ''}`}
+                  className={`form-control form-control-sm ${validationErrors.capacity ? 'is-invalid' : ''}`}
                   required
                 >
-                  <option value="" className="small">Select Capacity</option>
-                  <option value="high-end" className="small">High End</option>
-                  <option value="medium" className="small">Medium</option>
-                  <option value="low" className="small">Low</option>
+                  <option value="">Select Capacity</option>
+                  <option value="High End">High End</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
                 </Form.Select>
                 {validationErrors.capacity && (
                   <div className="invalid-feedback">{validationErrors.capacity}</div>
                 )}
-              </Col>
-
-
-
-              <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Contarct Agreement</Form.Label>
-                <Form.Control
-                  type="file"
-                  name="contract_agreement"
-                  onChange={(e) => handleFileChange(e, 'contract_agreement')}
-                  className="form-control form-control-sm"
-                />
               </Col>
 
               <Col md={12} className="mb-2">
@@ -340,22 +374,44 @@ const CustomerRegistrationForm = () => {
 
             <Row className="mt-3">
               <Col md={12}>
-                <h5 className="form-section-title">Representative Information</h5>
+                <h5 className="form-section-title">Contact Person Information</h5>
               </Col>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Representative Name</Form.Label>
+                <Form.Label className="form-label small">Contact Person Name</Form.Label>
                 <Form.Control
                   type="text"
-                  name="name"
-                  value={representative.name}
+                  name="Contact_person_name"
+                  value={representative.Contact_person_name}
                   onChange={handleRepresentativeChange}
-                  className={`form-control form-control-sm ${validationErrors.representative_name ? 'is-invalid' : ''}`}
+                  className={`form-control form-control-sm ${validationErrors.Contact_person_name ? 'is-invalid' : ''}`}
                   required
                 />
-                {validationErrors.representative_name && (
-                  <div className="invalid-feedback">{validationErrors.representative_name}</div>
+                {validationErrors.Contact_person_name && (
+                  <div className="invalid-feedback">{validationErrors.Contact_person_name}</div>
                 )}
               </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Title</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="title"
+                  value={representative.title}
+                  onChange={handleRepresentativeChange}
+                  className="form-control form-control-sm"
+                />
+              </Col>
+
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Education</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="education"
+                  value={representative.education}
+                  onChange={handleRepresentativeChange}
+                  className="form-control form-control-sm"
+                />
+              </Col>
+
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Designation</Form.Label>
                 <Form.Control
@@ -368,65 +424,54 @@ const CustomerRegistrationForm = () => {
               </Col>
 
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Email</Form.Label>
+                <Form.Label className="form-label small">Qualification</Form.Label>
                 <Form.Control
-                  type="email"
-                  name="email"
-                  value={representative.email}
-                  onChange={handleRepresentativeChange}
-                  className={`form-control form-control-sm ${validationErrors.representative_email ? 'is-invalid' : ''}`}
-                  required
-                />
-                {validationErrors.representative_email && (
-                  <div className="invalid-feedback">{validationErrors.representative_email}</div>
-                )}
-              </Col>
-              <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Contact Number</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="contact_number"
-                  value={representative.contact_number}
-                  onChange={handleRepresentativeChange}
-                  className={`form-control form-control-sm ${validationErrors.representative_contact ? 'is-invalid' : ''}`}
-                  required
-                />
-                {validationErrors.representative_contact && (
-                  <div className="invalid-feedback">{validationErrors.representative_contact}</div>
-                )}
-              </Col>
-
-              <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Alternative Contact Number</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="contact_number2"
-                  value={representative.contact_number2}
+                  type="text"
+                  name="qualification"
+                  value={representative.qualification}
                   onChange={handleRepresentativeChange}
                   className="form-control form-control-sm"
                 />
               </Col>
+
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  name="Contact_person_email"
+                  value={representative.Contact_person_email}
+                  onChange={handleRepresentativeChange}
+                  className={`form-control form-control-sm ${validationErrors.Contact_person_email ? 'is-invalid' : ''}`}
+                  required
+                />
+                {validationErrors.Contact_person_email && (
+                  <div className="invalid-feedback">{validationErrors.Contact_person_email}</div>
+                )}
+              </Col>
+
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Contact Number</Form.Label>
+                <Form.Control
+                  type="tel"
+                  name="Contact_person_number"
+                  value={representative.Contact_person_number}
+                  onChange={handleRepresentativeChange}
+                  className={`form-control form-control-sm ${validationErrors.Contact_person_number ? 'is-invalid' : ''}`}
+                  required
+                />
+                {validationErrors.Contact_person_number && (
+                  <div className="invalid-feedback">{validationErrors.Contact_person_number}</div>
+                )}
+              </Col>
+
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Registered By</Form.Label>
                 <Form.Control
                   type="text"
                   name="registered_by"
-                  value={representative.registered_by}
-                  onChange={handleRepresentativeChange}
-                  className={`form-control form-control-sm ${validationErrors.representative_registered_by ? 'is-invalid' : ''}`}
-                  required
-                />
-                {validationErrors.representative_registered_by && (
-                  <div className="invalid-feedback">{validationErrors.representative_registered_by}</div>
-                )}
-              </Col>
-              <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Visiting Card</Form.Label>
-                <Form.Control
-                  type="file"
-                  name="visitingCard"
-                  onChange={(e) => handleFileChange(e, 'visitingCard')}
+                  value={getUserInfo().employee_name}
                   className="form-control form-control-sm"
+                  disabled
                 />
               </Col>
             </Row>
