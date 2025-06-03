@@ -4,7 +4,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomePage from './HomePage';
 import Home from './components/Home';
-import Dashboard from './components/Dashboard';
+import Dashboard from './dashboard/Dashboard';
 import EmployeeRegistration from './components/registration/EmployeeRegistrationForm';
 import EmployeeTable from './components/Table/EmployeeTable';
 import CustomerRegistration from './components/registration/CustomerRegistrationForm';

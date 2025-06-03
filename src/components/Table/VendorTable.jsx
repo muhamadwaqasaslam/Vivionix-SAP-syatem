@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RiFilter3Line } from 'react-icons/ri';
+import { RiFilter3Line, RiRefreshLine } from 'react-icons/ri';
 
 import { Row, Col, Form, Button, Modal, Alert } from 'react-bootstrap';
 import './EmployeeTable.css';
@@ -169,6 +169,36 @@ const VendorTable = () => {
   };
 
   const handleShowEditModal = (vendor) => {
+    // Get user info for registered_by
+    const getUserInfo = () => {
+      try {
+        const sessionUser = sessionStorage.getItem('user');
+        if (sessionUser) {
+          const userData = JSON.parse(sessionUser);
+          return userData;
+        }
+
+        const localUser = localStorage.getItem('user');
+        if (localUser) {
+          const userData = JSON.parse(localUser);
+          return userData;
+        }
+
+        return {
+          employee_name: 'default_user',
+          employee_id: null
+        };
+      } catch (error) {
+        console.error('Error getting user info:', error);
+        return {
+          employee_name: 'error_user',
+          employee_id: null
+        };
+      }
+    };
+
+    const userInfo = getUserInfo();
+    
     setSelectedVendor(vendor);
     setEditForm({
       vendorname: vendor.vendorname,
@@ -177,9 +207,10 @@ const VendorTable = () => {
       website: vendor.website,
       company_phone_number: vendor.company_phone_number,
       address: vendor.address,
-      productcatalog: vendor.productcatalog, // Set the existing product catalog
-
-
+      productcatalog: vendor.productcatalog,
+      iso_files: vendor.iso_files,
+      registered_by: userInfo.employee_id,
+      registered_by_name: userInfo.employee_name
     });
     setShowEditModal(true);
   };
@@ -249,30 +280,50 @@ const VendorTable = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`https://my.vivionix.com/vendors/update/${selectedVendor.vendor_id}/`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editForm),
+      setLoading(true);
+      setError(null);
+      setSuccess(false);
+
+      const formData = new FormData();
+      
+      // Append all fields to FormData
+      Object.keys(editForm).forEach(key => {
+        if (key === 'productcatalog' && editForm[key]) {
+          formData.append(key, editForm[key]);
+        } else if (key === 'iso' && editForm[key]) {
+          formData.append(key, editForm[key]);
+        } else if (key !== 'productcatalog' && key !== 'iso') {
+          formData.append(key, editForm[key]);
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update vendor');
-      }
-
-      // Update the vendors list with the edited vendor
-      setVendors(prevVendors =>
-        prevVendors.map(vendor =>
-          vendor.vendor_id === selectedVendor.vendor_id
-            ? { ...vendor, ...editForm }
-            : vendor
-        )
+      const response = await api.put(
+        `/vendors/update/${selectedVendor.vendor_id}/`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
       );
 
-      handleCloseEditModal();
+      if (response.data) {
+        setSuccess(true);
+        // Update the vendors list with the edited vendor
+        setVendors(prevVendors =>
+          prevVendors.map(vendor =>
+            vendor.vendor_id === selectedVendor.vendor_id
+              ? { ...vendor, ...response.data }
+              : vendor
+          )
+        );
+        handleCloseEditModal();
+      }
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || err.message || 'Failed to update vendor');
+      setSuccess(false);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -688,8 +739,29 @@ const VendorTable = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get('/vendors/list_all/');
+      if (response.data) {
+        setVendors(response.data);
+        // Reset filters
+        setVendorIdSearch("");
+        setFilterFields({ name: "", email: "", type: "" });
+        setFilteredVendors(response.data);
+        // Fetch representatives after getting vendors
+        await fetchRepresentatives();
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to refresh vendors');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return null;
   }
 
   if (error) {
@@ -729,15 +801,51 @@ const VendorTable = () => {
               padding: '6px 10px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              border: '1px solid #dee2e6',
+              borderRadius: '4px',
+              backgroundColor: '#fff',
+              transition: 'border-color 0.2s ease-in-out'
             }}
+            className="action-button"
           >
             <RiFilter3Line size={20} />
+          </Button>
+          <Button 
+            variant="outline-secondary" 
+            onClick={handleRefresh}
+            disabled={loading}
+            style={{ 
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid #dee2e6',
+              borderRadius: '4px',
+              backgroundColor: '#fff',
+              transition: 'border-color 0.2s ease-in-out'
+            }}
+            className="action-button"
+            title="Refresh Table"
+          >
+            <RiRefreshLine size={20} className={loading ? 'rotating' : ''} />
           </Button>
           {showSearch && (
             <div
               ref={filterFormRef}
               className="filter-dropdown"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: '0',
+                zIndex: 1000,
+                backgroundColor: '#fff',
+                border: '1px solid #dee2e6',
+                borderRadius: '4px',
+                padding: '1rem',
+                marginTop: '0.5rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
             >
               <input
                 type="text"
@@ -781,8 +889,10 @@ const VendorTable = () => {
               <th scope="col">Phone</th>
               <th scope="col">Type</th>
               <th scope="col">Website</th>
+              <th scope="col">Address</th>
+              <th scope="col">Registered By</th>
               <th scope="col">Product Catalog</th>
-              <th scope="col">IOS</th>
+              <th scope="col">ISO</th>
               <th scope="col">Representative</th>
               <th scope="col">Actions</th>
             </tr>
@@ -790,7 +900,7 @@ const VendorTable = () => {
           <tbody>
             {currentVendors.length === 0 ? (
               <tr>
-                <td colSpan="10" style={{ textAlign: 'center' }}>No vendors found</td>
+                <td colSpan="12" style={{ textAlign: 'center' }}>No vendors found</td>
               </tr>
             ) : (
               currentVendors.map((vendor) => (
@@ -839,9 +949,11 @@ const VendorTable = () => {
                         {vendor.website}
                       </a>
                     ) : (
-                      'No Website'
+                      <span className="text-muted">No Website</span>
                     )}
                   </td>
+                  <td>{vendor.address || <span className="text-muted">No Address</span>}</td>
+                  <td>{vendor.registered_by_name || <span className="text-muted">Not Available</span>}</td>
                   <td>
                     {vendor.productcatalog ? (
                       <a
@@ -853,21 +965,21 @@ const VendorTable = () => {
                         {vendor.productcatalog.split('/').pop()}
                       </a>
                     ) : (
-                      'No Product Catalog'
+                      <span className="text-muted">No Catalog</span>
                     )}
                   </td>
                   <td>
-                    {vendor.iso ? (
+                    {vendor.iso_files ? (
                       <a
-                        href={vendor.iso}
+                        href={vendor.iso_files}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary"
                       >
-                        {vendor.iso.split('/').pop()}
+                        {vendor.iso_files.split('/').pop()}
                       </a>
                     ) : (
-                      'No ISO'
+                      <span className="text-muted">No ISO</span>
                     )}
                   </td>
                   <td>
@@ -1154,6 +1266,8 @@ const VendorTable = () => {
           <Modal.Title>Edit Vendor</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
+          {success && <Alert variant="success" onClose={() => setSuccess(false)} dismissible>Vendor updated successfully!</Alert>}
           <Form onSubmit={handleEditSubmit}>
             <Row>
               <Col md={6} className="mb-2">
@@ -1186,13 +1300,17 @@ const VendorTable = () => {
             <Row>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Company Phone Number</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="company_phone_number"
+                <PhoneInput
+                  country={'pk'}
                   value={editForm.company_phone_number}
-                  onChange={handleEditFormChange}
-                  className="form-control form-control-sm"
-                  required
+                  onChange={(value) => handleEditFormChange({ target: { name: 'company_phone_number', value } })}
+                  inputClass="form-control"
+                  containerClass="phone-input-container"
+                  buttonClass="phone-input-button"
+                  inputProps={{
+                    name: 'company_phone_number',
+                    required: true
+                  }}
                 />
               </Col>
               <Col md={6} className="mb-2">
@@ -1203,9 +1321,20 @@ const VendorTable = () => {
                   value={editForm.website}
                   onChange={handleEditFormChange}
                   className="form-control form-control-sm"
-                  disabled
-                  readOnly
+                  placeholder="Enter website URL (e.g., https://example.com)"
                 />
+                {editForm.website && (
+                  <small className="text-muted">
+                    <a
+                      href={editForm.website.startsWith('http') ? editForm.website : `https://${editForm.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary"
+                    >
+                      Visit Website
+                    </a>
+                  </small>
+                )}
               </Col>
             </Row>
             <Row>
@@ -1217,24 +1346,27 @@ const VendorTable = () => {
                   onChange={handleEditFormChange}
                   className="form-control form-control-sm"
                   required
-                  disabled
-                  readOnly
                 >
                   <option value="">Select Type</option>
-                  <option value="supplier">Supplier</option>
-                  <option value="service">Service Provider</option>
-                  <option value="Maufacturer">Manufacturer</option>
+                  <option value="Manufacturer">Manufacturer</option>
                   <option value="Distributor">Distributor</option>
                   <option value="Importer">Importer</option>
                 </Form.Select>
               </Col>
-            </Row>
-            <Row>
-              <Col md={12} className="mb-2">
-                <Form.Label className="form-label small">Product Catalog</Form.Label>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Registered By</Form.Label>
                 <Form.Control
-                  type="file"
+                  type="text"
+                  name="registered_by_name"
+                  value={editForm.registered_by_name}
                   className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+                <input
+                  type="hidden"
+                  name="registered_by"
+                  value={editForm.registered_by}
                 />
               </Col>
             </Row>
@@ -1252,12 +1384,46 @@ const VendorTable = () => {
                 />
               </Col>
             </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Product Catalog</Form.Label>
+                <Form.Control
+                  type="file"
+                  name="productcatalog"
+                  onChange={(e) => setEditForm(prev => ({ ...prev, productcatalog: e.target.files[0] }))}
+                  className="form-control form-control-sm"
+                />
+                {editForm.productcatalog && (
+                  <small className="text-muted">
+                    Current file: {typeof editForm.productcatalog === 'string' 
+                      ? editForm.productcatalog.split('/').pop() 
+                      : editForm.productcatalog.name}
+                  </small>
+                )}
+              </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">ISO Certificate</Form.Label>
+                <Form.Control
+                  type="file"
+                  name="iso_files"
+                  onChange={(e) => setEditForm(prev => ({ ...prev, iso_files: e.target.files[0] }))}
+                  className="form-control form-control-sm"
+                />
+                {editForm.iso_files && (
+                  <small className="text-muted">
+                    Current file: {typeof editForm.iso_files === 'string' 
+                      ? editForm.iso_files.split('/').pop() 
+                      : editForm.iso_files.name}
+                  </small>
+                )}
+              </Col>
+            </Row>
             <div className="text-end mt-3">
               <Button variant="secondary" onClick={handleCloseEditModal} className="me-2">
                 Cancel
               </Button>
-              <Button variant="primary" type="submit">
-                Save Changes
+              <Button variant="primary" type="submit" disabled={loading}>
+                {loading ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </Form>
@@ -1400,5 +1566,50 @@ const VendorTable = () => {
     </div>
   );
 };
+
+// Update the styles
+const styles = `
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .rotating {
+    animation: rotate 1s linear infinite;
+  }
+
+  .action-button {
+    color: #6c757d !important;
+  }
+
+  .action-button:hover {
+    border-color: #0d6efd !important;
+    background-color: #fff !important;
+    color: #6c757d !important;
+  }
+
+  .action-button:focus {
+    box-shadow: none !important;
+    border-color: #0d6efd !important;
+    background-color: #fff !important;
+    color: #6c757d !important;
+  }
+
+  .action-button:disabled {
+    background-color: #fff !important;
+    border-color: #dee2e6 !important;
+    opacity: 0.65;
+    color: #6c757d !important;
+  }
+`;
+
+// Add the styles to the document
+const styleSheet = document.createElement("style");
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
 
 export default VendorTable; 

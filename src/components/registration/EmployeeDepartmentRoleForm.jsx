@@ -46,12 +46,14 @@ const EmployeeDepartmentRoleForm = () => {
     const fetchDepartments = async () => {
       try {
         const response = await api.get('/employee/departments/');
-        const formattedDepartments = response.data.map(dept => ({
+        const data = response.data;
+        const formattedDepartments = data.map(dept => ({
           value: dept.id,
-          label: dept.title
+          label: dept.name
         }));
         setDepartments(formattedDepartments);
       } catch (err) {
+        console.error('Error fetching departments:', err);
         setError('Failed to load departments');
       }
     };
@@ -64,12 +66,17 @@ const EmployeeDepartmentRoleForm = () => {
     const fetchRoles = async () => {
       try {
         const response = await api.get('/employee/roles/');
+        console.log('Raw roles data:', response.data);  // Log raw data
+        
         const formattedRoles = response.data.map(role => ({
           value: role.id,
           label: role.title
         }));
+        console.log('Formatted roles:', formattedRoles);  // Log formatted data
+        
         setRoles(formattedRoles);
       } catch (err) {
+        console.error('Error fetching roles:', err);  // Log any errors
         setError('Failed to load roles');
       }
     };
@@ -88,7 +95,7 @@ const EmployeeDepartmentRoleForm = () => {
       );
       
       return filteredEmployees.map(emp => ({
-        value: emp.employee_id,
+        value: emp.username,
         label: `${emp.first_name} ${emp.last_name}`
       }));
     } catch (err) {
@@ -111,10 +118,17 @@ const EmployeeDepartmentRoleForm = () => {
 
     try {
       const formDataPayload = new FormData();
-      formDataPayload.append('employee', formData.employee_name.label);
+      formDataPayload.append('employee', formData.employee_name.value);
       formDataPayload.append('department', formData.department_name.label);
       formDataPayload.append('role', formData.role_name.label);
       formDataPayload.append('registered_by', formData.registered_by);
+
+      console.log('Submitting data:', {
+        employee: formData.employee_name.value,
+        department: formData.department_name.label,
+        role: formData.role_name.label,
+        registered_by: formData.registered_by
+      });
 
       const response = await api.post('/employee/employee-department-role/', formDataPayload, {
         headers: {
@@ -133,6 +147,7 @@ const EmployeeDepartmentRoleForm = () => {
         });
       }
     } catch (err) {
+      console.error('Error submitting form:', err.response?.data);
       setError(err.response?.data?.message || 'Failed to assign role');
     } finally {
       setLoading(false);
@@ -177,12 +192,14 @@ const EmployeeDepartmentRoleForm = () => {
             <Form.Group className="mb-3">
               <Form.Label>Department</Form.Label>
               <Select
+                options={departments}
                 value={formData.department_name}
                 onChange={(selected) => setFormData({ ...formData, department_name: selected })}
-                options={departments}
                 placeholder="Select department..."
                 isClearable
                 required
+                classNamePrefix="Select2"
+                className="search-panel"
               />
             </Form.Group>
 

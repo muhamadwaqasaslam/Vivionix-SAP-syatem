@@ -182,7 +182,8 @@ const CustomerRegistrationForm = () => {
           qualification: representative.qualification,
           Contact_person_email: representative.Contact_person_email,
           Contact_person_number: representative.Contact_person_number,
-          registered_by: currentUser.employee_id
+          registered_by: currentUser.employee_id,
+          customer_name: customer.Companyname
         }
       };
 
@@ -235,7 +236,7 @@ const CustomerRegistrationForm = () => {
     <div className="registration-container">
       <Card>
         <Card.Header className="registration-header">
-          <h2 className="registration-title">Customer Registration</h2>
+          <h2 className="registration-title text-center">Customer Registration</h2>
         </Card.Header>
         <Card.Body>
           {error && <Alert variant="danger">{error}</Alert>}
