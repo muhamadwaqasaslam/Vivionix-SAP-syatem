@@ -24,6 +24,8 @@ import CustomerProductTable from './components/Table/CustomerProductTable';
 import LoginPage from './LoginPage';
 import SignUpPage from './SignUp';
 import ForgetPassword from './Forgetpassword';
+import OrderCreate from './components/registration/OrderCreate';
+import OrderList from './components/Table/OrderList';
 
 // Store Module Components
 import StockList from './components/Table/StockList';
@@ -79,6 +81,11 @@ function App() {
           {/* Employee Department Role Routes */}
           <Route path="employee-department-role" element={<EmployeeDepartmentRoleForm />} />
           <Route path="employee-department-role-list" element={<EmployeeDepartmentRoleTable />} />
+
+          {/* Order Routes */}
+          <Route path="order-create" element={<OrderCreate />} />
+          <Route path="order-list" element={<OrderList />} />
+
         </Route>
       </Routes>
     </BrowserRouter>

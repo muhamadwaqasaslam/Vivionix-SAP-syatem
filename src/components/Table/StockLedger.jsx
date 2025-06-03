@@ -19,7 +19,7 @@ const StockLedger = () => {
       expiry: '2024-12-31',
       qtyIn: 50,
       qtyOut: 0,
-      comments: 'Initial stock in'
+      comments: ' stock in'
     },
     {
       id: 2,
@@ -80,10 +80,8 @@ const StockLedger = () => {
                          (!endDate || transactionDate <= endDate);
     
     const matchesSearch = 
-      transaction.dcNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.lotNo.toLowerCase().includes(searchTerm.toLowerCase());
+      transaction.productName.toLowerCase().includes(searchTerm.toLowerCase());
 
     return isInDateRange && matchesSearch;
   });
@@ -97,7 +95,7 @@ const StockLedger = () => {
         <Row className="align-items-end">
           <Col md={3}>
             <Form.Group>
-              <Form.Label>Start Date</Form.Label>
+            <Form.Label className="fw-bold">Start Date: </Form.Label>
               <DatePicker
                 selected={startDate}
                 onChange={date => setStartDate(date)}
@@ -110,8 +108,8 @@ const StockLedger = () => {
           </Col>
           <Col md={3}>
             <Form.Group>
-              <Form.Label>End Date</Form.Label>
-              <DatePicker
+            <Form.Label className="fw-bold">End Date: </Form.Label>
+            <DatePicker
                 selected={endDate}
                 onChange={date => setEndDate(date)}
                 className="form-control form-control-sm"
@@ -126,7 +124,7 @@ const StockLedger = () => {
             <input
               type="text"
               className="form-control search-input"
-              placeholder="Search by DC No or Customer Name..."
+              placeholder="Search by Customer Name or Product Name..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{ maxWidth: 320 }}
@@ -135,7 +133,7 @@ const StockLedger = () => {
         </Row>
       </div>
 
-      {/* Transactions Table */}
+      {/* Transactions Table display*/}
       <div className="table-responsive">
         <Table className="table text-nowrap">
           <thead>

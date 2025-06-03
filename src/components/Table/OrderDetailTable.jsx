@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Row, Col, Form, Button, Modal, Table, Alert } from 'react-bootstrap';
+import { Card, Row, Col, Form, Button, Modal, Table, Alert, ListGroup } from 'react-bootstrap';
 import './EmployeeTable.css';
 import api from '../../utils/api';
 import { RiFilter3Line, RiRefreshLine } from 'react-icons/ri';
@@ -13,6 +13,7 @@ const OrderDetailTable = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
   const [editForm, setEditForm] = useState({
+    product_id: "",
     product_name: "",
     productquantity: "",
     order: "",
@@ -30,10 +31,15 @@ const OrderDetailTable = () => {
   const [validationErrors, setValidationErrors] = useState({});
   const [success, setSuccess] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [showProductList, setShowProductList] = useState(false);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [availableProducts, setAvailableProducts] = useState([]);
 
   useEffect(() => {
     fetchOrderDetails();
     fetchOrders();
+    fetchProducts();
   }, []);
 
   const fetchOrderDetails = async () => {
@@ -62,14 +68,27 @@ const OrderDetailTable = () => {
     }
   };
 
+  const fetchProducts = async () => {
+    try {
+      const response = await api.get('/products/list_all/');
+      if (response.data) {
+        setAvailableProducts(response.data);
+      }
+    } catch (err) {
+      setError('Failed to fetch products');
+    }
+  };
+
   const handleShowEditModal = (orderDetail) => {
     setSelectedOrderDetail(orderDetail);
     setEditForm({
-      product_name: orderDetail.product_name,
+      product_id: orderDetail.product_id,
+      product_name: orderDetail.display_product_name,
       productquantity: orderDetail.productquantity,
       order: orderDetail.order,
       delivered_quantity: orderDetail.delivered_quantity
     });
+    setProductSearchTerm(orderDetail.display_product_name);
     setShowEditModal(true);
   };
 
@@ -77,11 +96,14 @@ const OrderDetailTable = () => {
     setShowEditModal(false);
     setSelectedOrderDetail(null);
     setEditForm({
+      product_id: "",
       product_name: "",
       productquantity: "",
       order: "",
       delivered_quantity: ""
     });
+    setProductSearchTerm('');
+    setShowProductList(false);
   };
 
   const handleEditFormChange = (e) => {
@@ -126,15 +148,51 @@ const OrderDetailTable = () => {
     setShowSearch(false);
   };
 
+  const handleProductSearch = (e) => {
+    const value = e.target.value;
+    setProductSearchTerm(value);
+    setShowProductList(true);
+
+    if (value.trim() === '') {
+      setFilteredProducts([]);
+      return;
+    }
+
+    const filtered = availableProducts.filter(product =>
+      product.product_name.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredProducts(filtered);
+  };
+
+  const handleProductSelect = (product) => {
+    setEditForm(prev => ({
+      ...prev,
+      product_id: product.id,
+      product_name: product.product_name
+    }));
+    setProductSearchTerm(product.product_name);
+    setShowProductList(false);
+  };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
+  
+      const payload = {
+       
+        product_name: editForm.product_name,
+        productquantity: parseInt(editForm.productquantity),
+        order: editForm.order,
+        delivered_quantity: parseInt(editForm.delivered_quantity),
+      };
+      console.log(`Updating: https://my.vivionix.com/orders/ordersdetail/update/${selectedOrderDetail.id}/`);
+  
       const response = await api.put(
         `/orders/ordersdetail/update/${selectedOrderDetail.id}/`,
-        editForm
+        payload
       );
-
+  
       if (response.data) {
         setSuccess(true);
         setOrderDetails(prevDetails =>
@@ -152,6 +210,7 @@ const OrderDetailTable = () => {
       setLoading(false);
     }
   };
+  
 
   const handleDeleteOrderDetail = async (orderDetailId) => {
     if (!window.confirm("Are you sure you want to delete this order detail?")) return;
@@ -323,7 +382,7 @@ const OrderDetailTable = () => {
               paginatedOrderDetails.map((detail) => (
                 <tr key={detail.id}>
                   <td>{detail.id}</td>
-                  <td>{detail.product_name}</td>
+                  <td>{detail.display_product_name}</td>
                   <td>{detail.productquantity}</td>
                   <td>{detail.order}</td>
                   <td>{detail.delivered_quantity}</td>
@@ -401,15 +460,30 @@ const OrderDetailTable = () => {
             <Row>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Product Name</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="product_name"
-                  value={editForm.product_name}
-                  onChange={handleEditFormChange}
-                  className="form-control form-control-sm"
-                  required
-                  minLength={1}
-                />
+                <div className="position-relative">
+                  <Form.Control
+                    type="text"
+                    value={productSearchTerm}
+                    onChange={handleProductSearch}
+                    placeholder="Search for a product..."
+                    className="form-control form-control-sm"
+                    required
+                  />
+                  {showProductList && filteredProducts.length > 0 && (
+                    <ListGroup className="position-absolute w-100" style={{ zIndex: 1000 }}>
+                      {filteredProducts.map((product) => (
+                        <ListGroup.Item
+                          key={product.id}
+                          action
+                          onClick={() => handleProductSelect(product)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {product.product_name}
+                        </ListGroup.Item>
+                      ))}
+                    </ListGroup>
+                  )}
+                </div>
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Product Quantity</Form.Label>
@@ -427,19 +501,13 @@ const OrderDetailTable = () => {
             <Row>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Order</Form.Label>
-                <Form.Select
-                  name="order"
+                <Form.Control
+                  type="text"
                   value={editForm.order}
-                  onChange={handleEditFormChange}
                   className="form-control form-control-sm"
-                >
-                  <option value="">Select Order</option>
-                  {orders.map((order) => (
-                    <option key={order.id} value={order.id}>
-                      {order.id}
-                    </option>
-                  ))}
-                </Form.Select>
+                  disabled
+                  readOnly
+                />
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Delivered Quantity</Form.Label>
@@ -475,6 +543,23 @@ const OrderDetailTable = () => {
             to {
               transform: rotate(360deg);
             }
+          }
+          .position-relative {
+            position: relative;
+          }
+          .position-absolute {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .list-group-item:hover {
+            background-color: #f8f9fa;
           }
         `}
       </style>

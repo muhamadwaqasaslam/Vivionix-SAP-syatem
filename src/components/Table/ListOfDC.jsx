@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Table, Button, Modal, Form, Alert} from 'react-bootstrap';
+import './EmployeeTable.css';
 
 const ListOfDC = () => {
   // Mock data for DCs
@@ -37,6 +38,29 @@ const ListOfDC = () => {
       status: 'created',
       receiving: null,
     },
+    // Added mock data for 'partially delivered' status
+    {
+      id: 4,
+      dcDate: '2024-05-11',
+      dcNo: 'DC240504',
+      customerOrderDate: '2024-05-07',
+      customerOrderNo: 'ORD004',
+      customerName: 'Customer 4',
+      scheduledDeliveryDate: '2024-05-13',
+      status: 'partially delivered',
+      receiving: null,
+    },
+    {
+      id: 5,
+      dcDate: '2024-05-10',
+      dcNo: 'DC240505',
+      customerOrderDate: '2024-05-06',
+      customerOrderNo: 'ORD005',
+      customerName: 'Customer 5',
+      scheduledDeliveryDate: '2024-05-12',
+      status: 'completed',
+      receiving: 'receiving5.pdf',
+    },
   ];
 
   const [dcs, setDCs] = useState(initialDCs);
@@ -47,12 +71,17 @@ const ListOfDC = () => {
   const [alert, setAlert] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isReplacing, setIsReplacing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('All'); // State for status filter
 
-  // Filtered DCs based on search
-  const filteredDCs = dcs.filter(dc =>
-    dc.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    dc.dcNo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtered DCs based on search and status filter
+  const filteredDCs = dcs.filter(dc => {
+    const matchesSearch = dc.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          dc.dcNo.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === 'All' || dc.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   // Handlers
   const handleShowUpload = (dc) => {
@@ -110,15 +139,50 @@ const ListOfDC = () => {
           {alert.message}
         </Alert>
       )}
-      <div className="table-header mb-2">
-        <input
-          type="text"
-          className="form-control search-input"
-          placeholder="Search by Customer Name or DC No..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          style={{ maxWidth: 320 }}
-        />
+      <div className="table-header mb-2" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+         <div className="d-flex align-items-center">
+            <span className="me-2">Filter by Status:</span>
+            <Button
+              variant={statusFilter === 'All' ? 'primary' : 'outline-secondary'}
+              size="sm"
+              onClick={() => setStatusFilter('All')}
+              className="me-2"
+            >
+              All
+            </Button>
+            <Button
+              variant={statusFilter === 'created' ? 'primary' : 'outline-secondary'}
+              size="sm"
+              onClick={() => setStatusFilter('created')}
+              className="me-2"
+            >
+              Created
+            </Button>
+            <Button
+              variant={statusFilter === 'partially delivered' ? 'primary' : 'outline-secondary'}
+              size="sm"
+              onClick={() => setStatusFilter('partially delivered')}
+              className="me-2"
+            >
+              Partially Delivered
+            </Button>
+            <Button
+              variant={statusFilter === 'completed' ? 'primary' : 'outline-secondary'}
+              size="sm"
+              onClick={() => setStatusFilter('completed')}
+            >
+              Completed
+            </Button>
+         </div>
+        <div style={{ maxWidth: 320 }}>
+          <input
+            type="text"
+            className="form-control search-input"
+            placeholder="Search by Customer Name or DC No..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
       <div className="table-responsive">
         <Table className="table text-nowrap">
@@ -149,10 +213,10 @@ const ListOfDC = () => {
                   <td>{dc.customerName}</td>
                   <td>{dc.scheduledDeliveryDate}</td>
                   <td>
-                    <span className={`badge ${dc.status === 'completed' ? 'bg-success' : 'bg-warning text-dark'}`}>{dc.status.charAt(0).toUpperCase() + dc.status.slice(1)}</span>
+                    <span className={`badge ${dc.status === 'completed' ? 'bg-success' : dc.status === 'partially delivered' ? 'bg-warning text-dark' : 'bg-secondary text-light'}`}>{dc.status.charAt(0).toUpperCase() + dc.status.slice(1)}</span>
                   </td>
                   <td>
-                    {dc.status === 'created' ? (
+                    {dc.status === 'created' || dc.status === 'partially delivered' ? (
                       <Button variant="info" size="sm" onClick={() => handleShowUpload(dc)}>
                         Upload Receiving
                       </Button>
