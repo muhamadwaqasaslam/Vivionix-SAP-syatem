@@ -199,7 +199,12 @@ const CustomerTable = () => {
   };
 
   const handleShowRepresentative = (representatives, customer) => {
-    setSelectedRepresentative(representatives);
+    // Ensure we have valid data
+    if (!customer || !customer.representative) {
+      setSelectedRepresentative([]);
+    } else {
+      setSelectedRepresentative(Array.isArray(customer.representative) ? customer.representative : []);
+    }
     setSelectedCustomerForRep(customer);
     setShowRepresentativeModal(true);
   };
@@ -502,6 +507,7 @@ const CustomerTable = () => {
       Contact_person_number: '',
       registered_by: registeredById,
       customer: selectedCustomerForRep.Customer_id,
+      customer_name: selectedCustomerForRep.Companyname,
       CV: null
     });
     setShowAddRepresentativeModal(true);
@@ -533,6 +539,9 @@ const CustomerTable = () => {
       Object.keys(editRepresentativeForm).forEach(key => {
         if (key === 'CV' && editRepresentativeForm[key]) {
           formData.append(key, editRepresentativeForm[key]);
+        } else if (key === 'customer') {
+          // Pass the customer name instead of ID
+          formData.append(key, selectedCustomerForRep.Companyname);
         } else if (key !== 'CV') {
           formData.append(key, editRepresentativeForm[key]);
         }
@@ -546,6 +555,7 @@ const CustomerTable = () => {
 
       if (response.data) {
         setSuccess(true);
+        // Update the customer's representatives list directly
         setCustomers(prevCustomers => 
           prevCustomers.map(customer => {
             if (customer.Customer_id === selectedCustomerForRep.Customer_id) {
@@ -557,6 +567,8 @@ const CustomerTable = () => {
             return customer;
           })
         );
+        // Update the selected representative list
+        setSelectedRepresentative(prev => [...(prev || []), response.data]);
         handleCloseAddRepresentativeModal();
       }
     } catch (err) {
@@ -933,7 +945,7 @@ const CustomerTable = () => {
                     )}
                   </td>
                   <td>
-                    {customer.representative && customer.representative.length > 0 ? (
+                    {customer.representative && Array.isArray(customer.representative) && customer.representative.length > 0 ? (
                       <button
                         className="btn btn-sm btn-info"
                         onClick={() => handleShowRepresentative(customer.representative, customer)}

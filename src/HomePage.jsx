@@ -23,7 +23,7 @@ import logo from './logo.png';
 
 import "./HomePage.css";
 import Home from "./components/Home";
-import Dashboard from "./components/Dashboard";
+import Dashboard from './dashboard/Dashboard';
 
 // Registration Forms
 import EmployeeRegistration from "./components/registration/EmployeeRegistrationForm";
@@ -210,17 +210,6 @@ const HomePage = () => {
         </div>
 
         <div className="sidebar-content">
-          {!isSidebarCollapsed && <h4 className="main-items">MAIN</h4>}
-          <div
-            className="sidebar-item"
-            onClick={() => handleMenuItemClick("Home")}
-          >
-            <Link to="/home/Home" className="sidebar-link">
-              <i className="ri-home-2-line"></i>
-              {!isSidebarCollapsed && <span className="items">Home</span>}
-            </Link>
-          </div>
-
           <div
             className="sidebar-item"
             onClick={() => handleMenuItemClick("Dashboard")}
@@ -231,14 +220,12 @@ const HomePage = () => {
             </Link>
           </div>
 
-          {!isSidebarCollapsed && <h4 className="main-items">REGISTRATION</h4>}
-          
           {/* Employee Section */}
           <div className="sidebar-item" onClick={() => toggleDropdown("Employee")}>
             <FaUser size={14} />
             {!isSidebarCollapsed && <span className="items">Employee</span>}
             {!isSidebarCollapsed && (
-              <span style={{ marginLeft: "50px" }}>
+              <span style={{ marginLeft: "auto" }}>
                 {activeDropdown === "Employee" ? (
                   <FaChevronDown className="dropdown-icon" />
                 ) : (
@@ -250,16 +237,10 @@ const HomePage = () => {
           {activeDropdown === "Employee" && (
             <div className="sidebar-submenu">
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Registration")}>
-                <Link to="/home/employee-registration" className="sidebar-link">Employee Registration</Link>
+                <Link to="/home/employee-registration" className="sidebar-link">ER Form</Link>
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Table")}>
-                <Link to="/home/employee-table" className="sidebar-link">Employee List</Link>
-              </div>
-              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Department Role")}>
-                <Link to="/home/employee-department-role" className="sidebar-link">Assign Department Role</Link>
-              </div>
-              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Department Role List")}>
-                <Link to="/home/employee-department-role-list" className="sidebar-link">Department Role List</Link>
+                <Link to="/home/employee-table" className="sidebar-link">Employee Table</Link>
               </div>
             </div>
           )}
@@ -267,9 +248,9 @@ const HomePage = () => {
           {/* Employee-Department-Role Section */}
           <div className="sidebar-item" onClick={() => toggleDropdown("EmployeeDepartmentRole")}>
             <FaUsers size={14} />
-            {!isSidebarCollapsed && <span className="items">Employee-Department-Role</span>}
+            {!isSidebarCollapsed && <span className="items">Employee Department Role</span>}
             {!isSidebarCollapsed && (
-              <span style={{ marginLeft: "70px" }}>
+              <span style={{ marginLeft: "auto" }}>
                 {activeDropdown === "EmployeeDepartmentRole" ? (
                   <FaChevronDown className="dropdown-icon" />
                 ) : (
@@ -280,17 +261,11 @@ const HomePage = () => {
           </div>
           {activeDropdown === "EmployeeDepartmentRole" && (
             <div className="sidebar-submenu">
-              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Department Registration")}>
-                <Link to="/home/department-registration" className="sidebar-link">Department Registration</Link>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Department Role")}>
+                <Link to="/home/employee-department-role" className="sidebar-link">EDR Form</Link>
               </div>
-              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Role Registration")}>
-                <Link to="/home/role-registration" className="sidebar-link">Role Registration</Link>
-              </div>
-              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Department List")}>
-                <Link to="/home/department-list" className="sidebar-link">Department List</Link>
-              </div>
-              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Role List")}>
-                <Link to="/home/role-list" className="sidebar-link">Role List</Link>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Department Role List")}>
+                <Link to="/home/employee-department-role-list" className="sidebar-link">EDR Table</Link>
               </div>
             </div>
           )}
@@ -300,7 +275,7 @@ const HomePage = () => {
             <FaStore size={14} />
             {!isSidebarCollapsed && <span className="items">Vendor</span>}
             {!isSidebarCollapsed && (
-              <span style={{ marginLeft: "70px" }}>
+              <span style={{ marginLeft: "auto" }}>
                 {activeDropdown === "Vendor" ? (
                   <FaChevronDown className="dropdown-icon" />
                 ) : (
@@ -312,10 +287,10 @@ const HomePage = () => {
           {activeDropdown === "Vendor" && (
             <div className="sidebar-submenu">
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Vendor Registration")}>
-                <Link to="/home/vendor-registration" className="sidebar-link">Vendor Registration</Link>
+                <Link to="/home/vendor-registration" className="sidebar-link">VR Form</Link>
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Vendor Table")}>
-                <Link to="/home/vendor-table" className="sidebar-link">Vendor List</Link>
+                <Link to="/home/vendor-table" className="sidebar-link">Vendor Table</Link>
               </div>
             </div>
           )}
@@ -323,9 +298,9 @@ const HomePage = () => {
           {/* Representative Section */}
           <div className="sidebar-item" onClick={() => toggleDropdown("Representative")}>
             <FaUsers size={14} />
-            {!isSidebarCollapsed && <span className="items">Representative</span>}
+            {!isSidebarCollapsed && <span className="items">Vendor Representative</span>}
             {!isSidebarCollapsed && (
-              <span style={{ marginLeft: "70px" }}>
+              <span style={{ marginLeft: "auto" }}>
                 {activeDropdown === "Representative" ? (
                   <FaChevronDown className="dropdown-icon" />
                 ) : (
@@ -337,10 +312,10 @@ const HomePage = () => {
           {activeDropdown === "Representative" && (
             <div className="sidebar-submenu">
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Representative Registration")}>
-                <Link to="/home/representative-registration" className="sidebar-link">Representative Registration</Link>
+                <Link to="/home/representative-registration" className="sidebar-link">Vendor Rep Form</Link>
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Representative Table")}>
-                <Link to="/home/representative-table" className="sidebar-link">Representative List</Link>
+                <Link to="/home/representative-table" className="sidebar-link">Vendor Rep Table</Link>
               </div>
             </div>
           )}
@@ -350,7 +325,7 @@ const HomePage = () => {
             <FaUser size={14} />
             {!isSidebarCollapsed && <span className="items">Customer</span>}
             {!isSidebarCollapsed && (
-              <span style={{ marginLeft: "52px" }}>
+              <span style={{ marginLeft: "auto" }}>
                 {activeDropdown === "Customer" ? (
                   <FaChevronDown className="dropdown-icon" />
                 ) : (
@@ -362,10 +337,10 @@ const HomePage = () => {
           {activeDropdown === "Customer" && (
             <div className="sidebar-submenu">
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Customer Registration")}>
-                <Link to="/home/customer-registration" className="sidebar-link">Customer Registration</Link>
+                <Link to="/home/customer-registration" className="sidebar-link">CR Form</Link>
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Customer Table")}>
-                <Link to="/home/customer-table" className="sidebar-link">Customer List</Link>
+                <Link to="/home/customer-table" className="sidebar-link">Customer Table</Link>
               </div>
             </div>
           )}
@@ -375,7 +350,7 @@ const HomePage = () => {
             <FaUsers size={14} />
             {!isSidebarCollapsed && <span className="items">Customer Representative</span>}
             {!isSidebarCollapsed && (
-              <span style={{ marginLeft: "70px" }}>
+              <span style={{ marginLeft: "auto" }}>
                 {activeDropdown === "CustomerRepresentative" ? (
                   <FaChevronDown className="dropdown-icon" />
                 ) : (
@@ -387,10 +362,10 @@ const HomePage = () => {
           {activeDropdown === "CustomerRepresentative" && (
             <div className="sidebar-submenu">
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Customer Representative Registration")}>
-                <Link to="/home/customer-representative-registration" className="sidebar-link">Representative Registration</Link>
+                <Link to="/home/customer-representative-registration" className="sidebar-link">CR Rep Form</Link>
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Customer Representative Table")}>
-                <Link to="/home/customer-representatives" className="sidebar-link">Representative List</Link>
+                <Link to="/home/customer-representatives" className="sidebar-link">CR Rep Table</Link>
               </div>
             </div>
           )}
@@ -400,7 +375,7 @@ const HomePage = () => {
             <FaBox size={14} />
             {!isSidebarCollapsed && <span className="items">Product</span>}
             {!isSidebarCollapsed && (
-              <span style={{ marginLeft: "62px" }}>
+              <span style={{ marginLeft: "auto" }}>
                 {activeDropdown === "Product" ? (
                   <FaChevronDown className="dropdown-icon" />
                 ) : (
@@ -412,10 +387,10 @@ const HomePage = () => {
           {activeDropdown === "Product" && (
             <div className="sidebar-submenu">
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Product Registration")}>
-                <Link to="/home/product-registration" className="sidebar-link">Product Registration</Link>
+                <Link to="/home/product-registration" className="sidebar-link">PR Form</Link>
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Product Table")}>
-                <Link to="/home/product-table" className="sidebar-link">Product List</Link>
+                <Link to="/home/product-table" className="sidebar-link">Product Table</Link>
               </div>
             </div>
           )}
@@ -425,7 +400,7 @@ const HomePage = () => {
             <FaBox size={14} />
             {!isSidebarCollapsed && <span className="items">Order Detail</span>}
             {!isSidebarCollapsed && (
-              <span style={{ marginLeft: "62px" }}>
+              <span style={{ marginLeft: "auto" }}>
                 {activeDropdown === "OrderDetail" ? (
                   <FaChevronDown className="dropdown-icon" />
                 ) : (
@@ -437,10 +412,10 @@ const HomePage = () => {
           {activeDropdown === "OrderDetail" && (
             <div className="sidebar-submenu">
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Order Detail Registration")}>
-                <Link to="/home/order-detail-registration" className="sidebar-link">Order Detail Registration</Link>
+                <Link to="/home/order-detail-registration" className="sidebar-link">ODR Form</Link>
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Order Detail Table")}>
-                <Link to="/home/order-detail-table" className="sidebar-link">Order Detail List</Link>
+                <Link to="/home/order-detail-table" className="sidebar-link">ODR Table</Link>
               </div>
             </div>
           )}
@@ -450,7 +425,7 @@ const HomePage = () => {
             <FaBox size={14} />
             {!isSidebarCollapsed && <span className="items">Customer Product</span>}
             {!isSidebarCollapsed && (
-              <span style={{ marginLeft: "62px" }}>
+              <span style={{ marginLeft: "auto" }}>
                 {activeDropdown === "CustomerProduct" ? (
                   <FaChevronDown className="dropdown-icon" />
                 ) : (
@@ -462,10 +437,10 @@ const HomePage = () => {
           {activeDropdown === "CustomerProduct" && (
             <div className="sidebar-submenu">
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Customer Product Registration")}>
-                <Link to="/home/customer-product-registration" className="sidebar-link small">Customer Product Registration</Link>
+                <Link to="/home/customer-product-registration" className="sidebar-link small">CPR Form</Link>
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Customer Product Table")}>
-                <Link to="/home/customer-product-table" className="sidebar-link small">Customer Product List</Link>
+                <Link to="/home/customer-product-table" className="sidebar-link small">CPR Table</Link>
               </div>
             </div>
           )}
@@ -475,7 +450,7 @@ const HomePage = () => {
             <FaWarehouse size={14} />
             {!isSidebarCollapsed && <span className="items">Store</span>}
             {!isSidebarCollapsed && (
-              <span style={{ marginLeft: "62px" }}>
+              <span style={{ marginLeft: "auto" }}>
                 {activeDropdown === "Store" ? (
                   <FaChevronDown className="dropdown-icon" />
                 ) : (

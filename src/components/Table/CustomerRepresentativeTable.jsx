@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Row, Col, Form, Button, Modal, Table, Alert } from 'react-bootstrap';
+import {  Row, Col, Form, Button, Modal, Alert } from 'react-bootstrap';
 import './EmployeeTable.css';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
@@ -37,7 +37,6 @@ const CustomerRepresentativeTable = () => {
     registered_by: "" 
   });
   const filterFormRef = useRef(null);
-  const [validationErrors, setValidationErrors] = useState({});
   const [registeredByName, setRegisteredByName] = useState("");
   const [success, setSuccess] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -344,7 +343,7 @@ const CustomerRepresentativeTable = () => {
 
   return (
     <div className="employee-table-container">
-      <h3 className="table-heading">Customer Representative Management</h3>
+      <h3 className="table-heading text-center">Customer Representative Management</h3>
 
       <div className="table-header">
         <div className="search-container" style={{ 
