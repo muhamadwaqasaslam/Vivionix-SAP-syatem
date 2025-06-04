@@ -1,19 +1,19 @@
 {
   "files": {
-    "main.css": "/muhamadwaqasaslam/Vivionix-SAP-syatem/static/css/main.c02eebe0.css",
-    "main.js": "/muhamadwaqasaslam/Vivionix-SAP-syatem/static/js/main.b32dd1ef.js",
-    "static/js/206.29721480.chunk.js": "/muhamadwaqasaslam/Vivionix-SAP-syatem/static/js/206.29721480.chunk.js",
-    "static/media/remixicon.svg?t=1734404658139": "/muhamadwaqasaslam/Vivionix-SAP-syatem/static/media/remixicon.df9902a6df13645438e1.svg",
-    "static/media/remixicon.eot?t=1734404658139": "/muhamadwaqasaslam/Vivionix-SAP-syatem/static/media/remixicon.29066d810a74e994be27.eot",
-    "static/media/remixicon.ttf?t=1734404658139": "/muhamadwaqasaslam/Vivionix-SAP-syatem/static/media/remixicon.868d1a768f4762dbcc3e.ttf",
-    "static/media/image.png": "/muhamadwaqasaslam/Vivionix-SAP-syatem/static/media/image.8db457542b50d5b39a3a.png",
-    "static/media/forgotbackground.png": "/muhamadwaqasaslam/Vivionix-SAP-syatem/static/media/forgotbackground.3805e6957f1a2b3fd45e.png",
-    "static/media/remixicon.woff?t=1734404658139": "/muhamadwaqasaslam/Vivionix-SAP-syatem/static/media/remixicon.ce82bb240fef24f93f95.woff",
-    "static/media/remixicon.woff2?t=1734404658139": "/muhamadwaqasaslam/Vivionix-SAP-syatem/static/media/remixicon.bb211d855a1864aa5b67.woff2",
-    "index.html": "/muhamadwaqasaslam/Vivionix-SAP-syatem/index.html"
+    "main.css": "/static/css/main.d9c11207.css",
+    "main.js": "/static/js/main.570b4b89.js",
+    "static/js/206.29721480.chunk.js": "/static/js/206.29721480.chunk.js",
+    "static/media/remixicon.svg?t=1734404658139": "/static/media/remixicon.df9902a6df13645438e1.svg",
+    "static/media/remixicon.eot?t=1734404658139": "/static/media/remixicon.29066d810a74e994be27.eot",
+    "static/media/remixicon.ttf?t=1734404658139": "/static/media/remixicon.868d1a768f4762dbcc3e.ttf",
+    "static/media/image.png": "/static/media/image.8db457542b50d5b39a3a.png",
+    "static/media/forgotbackground.png": "/static/media/forgotbackground.3805e6957f1a2b3fd45e.png",
+    "static/media/remixicon.woff?t=1734404658139": "/static/media/remixicon.ce82bb240fef24f93f95.woff",
+    "static/media/remixicon.woff2?t=1734404658139": "/static/media/remixicon.bb211d855a1864aa5b67.woff2",
+    "index.html": "/index.html"
   },
   "entrypoints": [
-    "static/css/main.c02eebe0.css",
-    "static/js/main.b32dd1ef.js"
+    "static/css/main.d9c11207.css",
+    "static/js/main.570b4b89.js"
   ]
 }
