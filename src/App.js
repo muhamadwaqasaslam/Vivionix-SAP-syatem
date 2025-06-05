@@ -40,7 +40,7 @@ import EmployeeDepartmentRoleTable from './components/Table/EmployeeDepartmentRo
 
 function App() {
   return (
-    <BrowserRouter basename={process.env.PUBLIC_URL}>
+    <BrowserRouter basename="/Vivionix-SAP-syatem">
       <Routes>
         {/* Route for the Login Page */}
         <Route path="/" element={<LoginPage />} />
