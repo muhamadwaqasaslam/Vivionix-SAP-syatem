@@ -14,13 +14,29 @@ const OrderDetailRegistrationForm = () => {
   const [success, setSuccess] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
   const [showProductList, setShowProductList] = useState(false);
+  const [showOrderList, setShowOrderList] = useState(false);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
 
   useEffect(() => {
     fetchProducts();
+    fetchOrders();
   }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const response = await api.get('/orders/orders/');
+      if (response.data) {
+        setOrders(response.data);
+      }
+    } catch (err) {
+      setError('Failed to fetch orders');
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -31,6 +47,32 @@ const OrderDetailRegistrationForm = () => {
     } catch (err) {
       setError('Failed to fetch products');
     }
+  };
+
+  const handleOrderSearch = (e) => {
+    const value = e.target.value;
+    setOrderSearchTerm(value);
+    setShowOrderList(true);
+
+    if (value.trim() === '') {
+      setFilteredOrders([]);
+      return;
+    }
+
+    const filtered = orders.filter(order =>
+      order.order_id.toString().toLowerCase().includes(value.toLowerCase()) ||
+      order.customer_name.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredOrders(filtered);
+  };
+
+  const handleOrderSelect = (order) => {
+    setFormData(prev => ({
+      ...prev,
+      order: order.order_id
+    }));
+    setOrderSearchTerm(`${order.order_id} - ${order.customer_name}`);
+    setShowOrderList(false);
   };
 
   const handleProductSearch = (e) => {
@@ -119,6 +161,7 @@ const OrderDetailRegistrationForm = () => {
           delivered_quantity: ''
         });
         setSearchTerm('');
+        setOrderSearchTerm('');
         setTimeout(() => setSuccess(false), 3000);
       }
     } catch (err) {
@@ -140,6 +183,35 @@ const OrderDetailRegistrationForm = () => {
           
           <Form onSubmit={handleSubmit}>
             <Row>
+              <Col md={6} className="mb-3">
+                <Form.Label className="form-label">Order</Form.Label>
+                <div className="position-relative">
+                  <Form.Control
+                    type="text"
+                    value={orderSearchTerm}
+                    onChange={handleOrderSearch}
+                    placeholder="Search by Order ID or Customer Name..."
+                    className={validationErrors.order ? 'is-invalid' : ''}
+                  />
+                  {showOrderList && filteredOrders.length > 0 && (
+                    <ListGroup className="position-absolute w-100" style={{ zIndex: 1000 }}>
+                      {filteredOrders.map((order) => (
+                        <ListGroup.Item
+                          key={order.order_id}
+                          action
+                          onClick={() => handleOrderSelect(order)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {order.order_id} - {order.customer_name}
+                        </ListGroup.Item>
+                      ))}
+                    </ListGroup>
+                  )}
+                  {validationErrors.order && (
+                    <div className="invalid-feedback">{validationErrors.order}</div>
+                  )}
+                </div>
+              </Col>
               <Col md={6} className="mb-3">
                 <Form.Label className="form-label">Product Name</Form.Label>
                 <div className="position-relative">
@@ -169,6 +241,8 @@ const OrderDetailRegistrationForm = () => {
                   )}
                 </div>
               </Col>
+            </Row>
+            <Row>
               <Col md={6} className="mb-3">
                 <Form.Label className="form-label">Product Quantity</Form.Label>
                 <Form.Control
@@ -182,23 +256,6 @@ const OrderDetailRegistrationForm = () => {
                 />
                 {validationErrors.productquantity && (
                   <div className="invalid-feedback">{validationErrors.productquantity}</div>
-                )}
-              </Col>
-            </Row>
-            <Row>
-              <Col md={6} className="mb-3">
-                <Form.Label className="form-label">Order</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="order"
-                  value={formData.order}
-                  onChange={handleChange}
-                  placeholder="Enter order number"
-                  className={validationErrors.order ? 'is-invalid' : ''}
-                  required
-                />
-                {validationErrors.order && (
-                  <div className="invalid-feedback">{validationErrors.order}</div>
                 )}
               </Col>
               <Col md={6} className="mb-3">
@@ -241,6 +298,10 @@ const OrderDetailRegistrationForm = () => {
             border: 1px solid #ddd;
             border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .list-group-item {
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
           }
           .list-group-item:hover {
             background-color: #f8f9fa;

@@ -17,9 +17,11 @@ const OrderDetailTable = () => {
     product_name: "",
     productquantity: "",
     order: "",
-    delivered_quantity: ""
+    delivered_quantity: "",
+    productprice: "",
+    total_price: "",
+    deliverystatus: ""
   });
-  const [orders, setOrders] = useState([]);
   const itemsPerPage = 10;
   const [showSearch, setShowSearch] = useState(false);
   const [orderDetailIdSearch, setOrderDetailIdSearch] = useState("");
@@ -28,18 +30,21 @@ const OrderDetailTable = () => {
     order: ""
   });
   const filterFormRef = useRef(null);
-  const [validationErrors, setValidationErrors] = useState({});
   const [success, setSuccess] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [showProductList, setShowProductList] = useState(false);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [availableProducts, setAvailableProducts] = useState([]);
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const [showOrderList, setShowOrderList] = useState(false);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  const [orders, setOrders] = useState([]);
 
   useEffect(() => {
     fetchOrderDetails();
-    fetchOrders();
     fetchProducts();
+    fetchOrders();
   }, []);
 
   const fetchOrderDetails = async () => {
@@ -57,17 +62,6 @@ const OrderDetailTable = () => {
     }
   };
 
-  const fetchOrders = async () => {
-    try {
-      const response = await api.get('/orders/order/list/');
-      if (response.data) {
-        setOrders(response.data);
-      }
-    } catch (err) {
-      setError('Failed to fetch orders');
-    }
-  };
-
   const fetchProducts = async () => {
     try {
       const response = await api.get('/products/list_all/');
@@ -79,6 +73,17 @@ const OrderDetailTable = () => {
     }
   };
 
+  const fetchOrders = async () => {
+    try {
+      const response = await api.get('/orders/orders/');
+      if (response.data) {
+        setOrders(response.data);
+      }
+    } catch (err) {
+      setError('Failed to fetch orders');
+    }
+  };
+
   const handleShowEditModal = (orderDetail) => {
     setSelectedOrderDetail(orderDetail);
     setEditForm({
@@ -86,9 +91,18 @@ const OrderDetailTable = () => {
       product_name: orderDetail.display_product_name,
       productquantity: orderDetail.productquantity,
       order: orderDetail.order,
-      delivered_quantity: orderDetail.delivered_quantity
+      delivered_quantity: orderDetail.delivered_quantity,
+      productprice: orderDetail.productprice,
+      total_price: orderDetail.total_price,
+      deliverystatus: orderDetail.deliverystatus
     });
     setProductSearchTerm(orderDetail.display_product_name);
+    const selectedOrder = orders.find(order => order.order_id === orderDetail.order);
+    if (selectedOrder) {
+      setOrderSearchTerm(`${selectedOrder.order_id} - ${selectedOrder.customer_name}`);
+    } else {
+      setOrderSearchTerm(orderDetail.order);
+    }
     setShowEditModal(true);
   };
 
@@ -100,10 +114,15 @@ const OrderDetailTable = () => {
       product_name: "",
       productquantity: "",
       order: "",
-      delivered_quantity: ""
+      delivered_quantity: "",
+      productprice: "",
+      total_price: "",
+      deliverystatus: ""
     });
     setProductSearchTerm('');
+    setOrderSearchTerm('');
     setShowProductList(false);
+    setShowOrderList(false);
   };
 
   const handleEditFormChange = (e) => {
@@ -174,6 +193,32 @@ const OrderDetailTable = () => {
     setShowProductList(false);
   };
 
+  const handleOrderSearch = (e) => {
+    const value = e.target.value;
+    setOrderSearchTerm(value);
+    setShowOrderList(true);
+
+    if (value.trim() === '') {
+      setFilteredOrders([]);
+      return;
+    }
+
+    const filtered = orders.filter(order =>
+      order.order_id.toString().toLowerCase().includes(value.toLowerCase()) ||
+      order.customer_name.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredOrders(filtered);
+  };
+
+  const handleOrderSelect = (order) => {
+    setEditForm(prev => ({
+      ...prev,
+      order: order.order_id
+    }));
+    setOrderSearchTerm(`${order.order_id} - ${order.customer_name}`);
+    setShowOrderList(false);
+  };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -186,10 +231,10 @@ const OrderDetailTable = () => {
         order: editForm.order,
         delivered_quantity: parseInt(editForm.delivered_quantity),
       };
-      console.log(`Updating: https://my.vivionix.com/orders/ordersdetail/update/${selectedOrderDetail.id}/`);
+    
   
       const response = await api.put(
-        `/orders/ordersdetail/update/${selectedOrderDetail.id}/`,
+        `/orders/ordersdetail/update/${selectedOrderDetail.id}`,
         payload
       );
   
@@ -217,7 +262,7 @@ const OrderDetailTable = () => {
 
     try {
       setLoading(true);
-      const response = await api.delete(`/orders/ordersdetail/delete/${orderDetailId}/`);
+      const response = await api.delete(`/orders/ordersdetail/delete/${orderDetailId}`);
 
       if (response.status === 200 || response.status === 204) {
         setOrderDetails((prevDetails) => prevDetails.filter(d => d.id !== orderDetailId));
@@ -261,6 +306,21 @@ const OrderDetailTable = () => {
       setError(err.response?.data?.detail || err.message || 'Failed to refresh data');
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const getDeliveryStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'delivered':
+        return 'bg-success-transparent';
+      case 'undelivered':
+        return 'bg-warning-transparent';
+      case 'in_transit':
+        return 'bg-info-transparent';
+      case 'failed':
+        return 'bg-danger-transparent';
+      default:
+        return 'bg-secondary-transparent';
     }
   };
 
@@ -367,25 +427,35 @@ const OrderDetailTable = () => {
             <tr>
               <th scope="col">ID</th>
               <th scope="col">Product Name</th>
-              <th scope="col">Product Quantity</th>
+              <th scope="col" className="text-center">Product Quantity</th>
+              <th scope="col">Product Price</th>
+              <th scope="col">Total Price</th>
               <th scope="col">Order</th>
-              <th scope="col">Delivered Quantity</th>
+              <th scope="col" className="text-center">Delivered Quantity</th>
+              <th scope="col">Delivery Status</th>
               <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedOrderDetails.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center' }}>No order details found</td>
+                <td colSpan="9" style={{ textAlign: 'center' }}>No order details found</td>
               </tr>
             ) : (
               paginatedOrderDetails.map((detail) => (
                 <tr key={detail.id}>
                   <td>{detail.id}</td>
                   <td>{detail.display_product_name}</td>
-                  <td>{detail.productquantity}</td>
+                  <td className='text-center'>{detail.productquantity}</td>
+                  <td>{parseFloat(detail.productprice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td>{parseFloat(detail.total_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                   <td>{detail.order}</td>
-                  <td>{detail.delivered_quantity}</td>
+                  <td className="text-center">{detail.delivered_quantity}</td>
+                  <td>
+                    <span className={`badge ${getDeliveryStatusBadgeClass(detail.deliverystatus)}`}>
+                      {detail.deliverystatus}
+                    </span>
+                  </td>
                   <td>
                     <div className="hstack gap-2 fs-15">
                       <button
@@ -500,14 +570,54 @@ const OrderDetailTable = () => {
             </Row>
             <Row>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Order</Form.Label>
+                <Form.Label className="form-label small">Product Price</Form.Label>
                 <Form.Control
                   type="text"
-                  value={editForm.order}
+                  name="productprice"
+                  value={editForm.productprice}
+                  onChange={handleEditFormChange}
                   className="form-control form-control-sm"
                   disabled
                   readOnly
                 />
+              </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Total Price</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={parseFloat(editForm.total_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Order</Form.Label>
+                <div className="position-relative">
+                  <Form.Control
+                    type="text"
+                    value={orderSearchTerm}
+                    onChange={handleOrderSearch}
+                    placeholder="Search by Order ID or Customer Name..."
+                    className="form-control form-control-sm"
+                  />
+                  {showOrderList && filteredOrders.length > 0 && (
+                    <ListGroup className="position-absolute w-100" style={{ zIndex: 1000 }}>
+                      {filteredOrders.map((order) => (
+                        <ListGroup.Item
+                          key={order.order_id}
+                          action
+                          onClick={() => handleOrderSelect(order)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {order.order_id} - {order.customer_name}
+                        </ListGroup.Item>
+                      ))}
+                    </ListGroup>
+                  )}
+                </div>
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Delivered Quantity</Form.Label>
@@ -519,6 +629,20 @@ const OrderDetailTable = () => {
                   className="form-control form-control-sm"
                   min={0}
                   max={4294967295}
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Delivery Status</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="deliverystatus"
+                  value={editForm.deliverystatus}
+                  onChange={handleEditFormChange}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
                 />
               </Col>
             </Row>
@@ -558,8 +682,38 @@ const OrderDetailTable = () => {
             border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
+          .list-group-item {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.5rem;
+            cursor: pointer;
+          }
           .list-group-item:hover {
             background-color: #f8f9fa;
+          }
+          .badge {
+            padding: 0.5em 0.75em;
+            font-weight: 500;
+            border-radius: 4px;
+          }
+          .bg-success-transparent {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+          }
+          .bg-warning-transparent {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+          }
+          .bg-info-transparent {
+            background-color: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+          }
+          .bg-danger-transparent {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+          }
+          .bg-secondary-transparent {
+            background-color: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
           }
         `}
       </style>

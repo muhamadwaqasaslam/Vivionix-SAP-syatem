@@ -39,7 +39,8 @@ const OrderCreate = () => {
         const userInfo = getUserInfo();
         setOrder(prev => ({
             ...prev,
-            registered_by_id: userInfo.employee_id || ''
+            registered_by_id: userInfo.employee_id || '',
+            registered_by_name: userInfo.employee_name || ''
         }));
     }, []);
 
@@ -47,11 +48,15 @@ const OrderCreate = () => {
         try {
             const sessionUser = sessionStorage.getItem('user');
             if (sessionUser) {
-                return JSON.parse(sessionUser);
+                const user = JSON.parse(sessionUser);
+                console.log('Session User:', user);
+                return user;
             }
             const localUser = localStorage.getItem('user');
             if (localUser) {
-                return JSON.parse(localUser);
+                const user = JSON.parse(localUser);
+                console.log('Local User:', user);
+                return user;
             }
             return {
                 employee_name: 'default_user',
@@ -259,6 +264,7 @@ const OrderCreate = () => {
                     order_delivery: '',
                     GST: '',
                     registered_by_id: '',
+                 
                     orderdetails: [{
                         product_name: '',
                         productquantity: '',
@@ -349,6 +355,23 @@ const OrderCreate = () => {
                                 />
                                 {validationErrors.GST && (
                                     <div className="invalid-feedback">{validationErrors.GST}</div>
+                                )}
+                            </Col>
+
+                            <Col md={6} className="mb-3">
+                                <Form.Label className="form-label">Registered By</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="registered_by_id"
+                                    value={`  ${order.registered_by_name}`}
+                                    onChange={handleChange}
+                                    className={validationErrors.registered_by_id ? 'is-invalid' : ''}
+                                    required
+                                    readOnly
+                                    disabled    
+                                />
+                                {validationErrors.registered_by_id && (
+                                    <div className="invalid-feedback">{validationErrors.registered_by_id}</div>
                                 )}
                             </Col>
 

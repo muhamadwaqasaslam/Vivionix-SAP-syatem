@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Row, Col, Form, Button, Modal, Table, Alert, ListGroup } from 'react-bootstrap';
+import {  Row, Col, Form, Button, Modal, Alert, ListGroup } from 'react-bootstrap';
 import './EmployeeTable.css';
 import api from '../../utils/api';
 import { RiFilter3Line, RiRefreshLine } from 'react-icons/ri';
@@ -18,9 +18,10 @@ const OrderList = () => {
     customer: '',
     order_delivery: '',
     GST: '',
-    registered_by_id: ''
+    registered_by_id: '',
+    registered_by_name: '',
+    instructions: ''
   });
-  const [customers, setCustomers] = useState([]);
   const [customerMap, setCustomerMap] = useState({});
   const itemsPerPage = 10;
   const [showSearch, setShowSearch] = useState(false);
@@ -42,11 +43,14 @@ const OrderList = () => {
     delivered_quantity: '',
     order: ''
   });
-  const [products, setProducts] = useState([]);
   const [availableProducts, setAvailableProducts] = useState([]);
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [showProductList, setShowProductList] = useState(false);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [showCustomerList, setShowCustomerList] = useState(false);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [customers, setCustomers] = useState([]);
 
   useEffect(() => {
     fetchOrders();
@@ -54,13 +58,56 @@ const OrderList = () => {
     fetchProducts();
   }, []);
 
+  const getUserInfo = () => {
+    try {
+      const sessionUser = sessionStorage.getItem('user');
+      if (sessionUser) {
+        const user = JSON.parse(sessionUser);
+        console.log('Session User:', user);
+        return user;
+      }
+      const localUser = localStorage.getItem('user');
+      if (localUser) {
+        const user = JSON.parse(localUser);
+        console.log('Local User:', user);
+        return user;
+      }
+      return {
+        employee_name: 'default_user',
+        employee_id: null
+      };
+    } catch (error) {
+      console.error('Error getting user info:', error);
+      return {
+        employee_name: 'error_user',
+        employee_id: null
+      };
+    }
+  };
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const response = await api.get('/orders/orders/');
       if (response.data) {
-        setOrders(response.data);
-        setFilteredOrders(response.data);
+        // Get user info for each order
+        const ordersWithUserInfo = await Promise.all(response.data.map(async (order) => {
+          try {
+            const userResponse = await api.get(`/employees/employee/${order.registered_by_id}/`);
+            return {
+              ...order,
+              registered_by_name: userResponse.data.employee_name || 'Unknown'
+            };
+          } catch (err) {
+            console.error('Error fetching user info:', err);
+            return {
+              ...order,
+              registered_by_name: 'Unknown'
+            };
+          }
+        }));
+        setOrders(ordersWithUserInfo);
+        setFilteredOrders(ordersWithUserInfo);
       }
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Failed to fetch orders');
@@ -74,11 +121,6 @@ const OrderList = () => {
       const response = await api.get('/customers/customer/list/');
       if (response.data) {
         setCustomers(response.data);
-        const customerNameMap = response.data.reduce((acc, customer) => {
-          acc[customer.Customer_id] = customer.Companyname;
-          return acc;
-        }, {});
-        setCustomerMap(customerNameMap);
       }
     } catch (err) {
       setError('Failed to fetch customers');
@@ -96,10 +138,6 @@ const OrderList = () => {
     }
   };
 
-  const getCustomerName = (customerId) => {
-    return customerMap[customerId] || customerId;
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -109,12 +147,16 @@ const OrderList = () => {
   const handleShowEditModal = (order) => {
     console.log('Order data:', order);
     setSelectedOrder(order);
+    const userInfo = getUserInfo();
     setEditForm({
       customer: order.customer_name,
       order_delivery: formatDate(order.order_delivery),
       GST: order.GST,
-      registered_by_id: order.registered_by_id || ''
+      registered_by_id: userInfo.employee_id || '',
+      registered_by_name: userInfo.employee_name || '',
+      instructions: order.instructions || ''
     });
+    setCustomerSearchTerm(order.customer_name);
     setShowEditModal(true);
   };
 
@@ -125,7 +167,9 @@ const OrderList = () => {
       customer: '',
       order_delivery: '',
       GST: '',
-      registered_by_id: ''
+      registered_by_id: '',
+      registered_by_name: '',
+      instructions: ''
     });
   };
 
@@ -195,7 +239,7 @@ const OrderList = () => {
       console.log('Update payload:', updatePayload);
 
       const response = await api.put(
-        `/orders/orders/update/${selectedOrder.order_id}/`,
+        `/orders/orders/update/${selectedOrder.order_id}`,
         updatePayload,
         {
           headers: {
@@ -297,6 +341,7 @@ const OrderList = () => {
   };
 
   const handleShowAddProduct = () => {
+    setShowProductModal(false);
     setProductForm({
       product_name: '',
       productquantity: '',
@@ -320,6 +365,7 @@ const OrderList = () => {
   };
 
   const handleShowEditProduct = (product) => {
+    setShowProductModal(false);
     setSelectedProduct(product);
     setProductForm({
       product_name: product.display_product_name,
@@ -495,6 +541,63 @@ const OrderList = () => {
     }
   };
 
+  const getStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'saved':
+        return 'bg-success-transparent';
+      case 'pending':
+        return 'bg-warning-transparent';
+      case 'processing':
+        return 'bg-info-transparent';
+      case 'completed':
+        return 'bg-success-transparent';
+      case 'cancelled':
+        return 'bg-danger-transparent';
+      default:
+        return 'bg-secondary-transparent';
+    }
+  };
+
+  const getDeliveryStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'delivered':
+        return 'bg-success-transparent';
+      case 'pending':
+        return 'bg-warning-transparent';
+      case 'in_transit':
+        return 'bg-info-transparent';
+      case 'failed':
+        return 'bg-danger-transparent';
+      default:
+        return 'bg-secondary-transparent';
+    }
+  };
+
+  const handleCustomerSearch = (e) => {
+    const value = e.target.value;
+    setCustomerSearchTerm(value);
+    setShowCustomerList(true);
+
+    if (value.trim() === '') {
+      setFilteredCustomers([]);
+      return;
+    }
+
+    const filtered = customers.filter(customer =>
+      customer.Companyname && customer.Companyname.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredCustomers(filtered);
+  };
+
+  const handleCustomerSelect = (customer) => {
+    setEditForm(prev => ({
+      ...prev,
+      customer: customer.Companyname
+    }));
+    setCustomerSearchTerm(customer.Companyname);
+    setShowCustomerList(false);
+  };
+
   const currentOrders = (orderIdSearch || showSearch || filteredOrders.length > 0) ? filteredOrders : orders;
   const totalPages = Math.ceil(currentOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -596,10 +699,16 @@ const OrderList = () => {
         <table className="table text-nowrap">
           <thead>
             <tr>
-              <th scope="col">ID</th>
-              <th scope="col">Customer</th>
+              <th scope="col">Order ID</th>
+              <th scope="col" className='text-center'>Customer</th>
+              <th scope="col">Created At</th>
               <th scope="col">Delivery Date</th>
+              <th scope="col">Total Price</th>
               <th scope="col">GST (%)</th>
+              <th scope="col">Total with GST</th>
+              <th scope="col">Status</th>
+              <th scope="col">Delivery Status</th>
+              <th scope="col">Registered By</th>
               <th scope="col">Instructions</th>
               <th scope="col">Products</th>
               <th scope="col">Actions</th>
@@ -608,15 +717,29 @@ const OrderList = () => {
           <tbody>
             {paginatedOrders.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center' }}>No orders found</td>
+                <td colSpan="13" style={{ textAlign: 'center' }}>No orders found</td>
               </tr>
             ) : (
               paginatedOrders.map((order) => (
                 <tr key={order.order_id}>
                   <td>{order.order_id}</td>
-                  <td>{order.customer_name}</td>
+                  <td className='text-center'>{order.customer_name}</td>
+                  <td>{formatDate(order.created_at)}</td>
                   <td>{formatDate(order.order_delivery)}</td>
-                  <td>{order.GST}</td>
+                  <td>{parseFloat(order.totalprice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td>{order.GST}%</td>
+                  <td>{parseFloat(order.totalpricewithgst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td>
+                    <span className={`badge ${getStatusBadgeClass(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`badge ${getDeliveryStatusBadgeClass(order.deliverystatus)}`}>
+                      {order.deliverystatus}
+                    </span>
+                  </td>
+                  <td>{order.registered_by_name}</td>
                   <td>{order.instructions}</td>
                   <td>
                     {order.orderdetails && order.orderdetails.length > 0 ? (
@@ -703,16 +826,53 @@ const OrderList = () => {
           <Form onSubmit={handleEditSubmit}>
             <Row>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Customer</Form.Label>
+                <Form.Label className="form-label small">Order ID</Form.Label>
                 <Form.Control
                   type="text"
-                  name="customer"
-                  value={editForm.customer}
-                  onChange={handleEditFormChange}
+                  value={selectedOrder?.order_id || ''}
                   className="form-control form-control-sm"
-                  required
-                  minLength={1}
+                  disabled
+                  readOnly
                 />
+              </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Created At</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formatDate(selectedOrder?.created_at) || ''}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Customer</Form.Label>
+                <div className="position-relative">
+                  <Form.Control
+                    type="text"
+                    value={customerSearchTerm}
+                    onChange={handleCustomerSearch}
+                    placeholder="Search for a customer..."
+                    className="form-control form-control-sm"
+                    required
+                  />
+                  {showCustomerList && filteredCustomers.length > 0 && (
+                    <ListGroup className="position-absolute w-100" style={{ zIndex: 1000 }}>
+                      {filteredCustomers.map((customer) => (
+                        <ListGroup.Item
+                          key={customer.Customer_id}
+                          action
+                          onClick={() => handleCustomerSelect(customer)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {customer.Companyname}
+                        </ListGroup.Item>
+                      ))}
+                    </ListGroup>
+                  )}
+                </div>
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Delivery Date</Form.Label>
@@ -728,9 +888,19 @@ const OrderList = () => {
             </Row>
             <Row>
               <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Total Price</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={`₹${parseFloat(selectedOrder?.totalprice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+              <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">GST (%)</Form.Label>
                 <Form.Control
-                  type="text"  // Changed from number to text as per Swagger
+                  type="text"
                   name="GST"
                   value={editForm.GST}
                   onChange={handleEditFormChange}
@@ -739,16 +909,60 @@ const OrderList = () => {
                   minLength={1}
                 />
               </Col>
+            </Row>
+            <Row>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Registered By ID</Form.Label>
+                <Form.Label className="form-label small">Total with GST</Form.Label>
                 <Form.Control
                   type="text"
-                  name="registered_by_id"
-                  value={editForm.registered_by_id}
-                  onChange={handleEditFormChange}
+                  value={`₹${parseFloat(selectedOrder?.totalpricewithgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                   className="form-control form-control-sm"
-                  required
-                  minLength={1}
+                  disabled
+                  readOnly
+                />
+              </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Registered By</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={`${editForm.registered_by_id} - ${editForm.registered_by_name}`}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Status</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={selectedOrder?.status || ''}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Delivery Status</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={selectedOrder?.deliverystatus || ''}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={12} className="mb-2">
+                <Form.Label className="form-label small">Instructions</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={selectedOrder?.instructions || ''}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
                 />
               </Col>
             </Row>
@@ -778,18 +992,32 @@ const OrderList = () => {
               <table className="table text-nowrap">
                 <thead>
                   <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Order ID</th>
                     <th scope="col">Product Name</th>
-                    <th scope="col">Quantity</th>
-                    <th scope="col">Delivered Quantity</th>
+                    <th scope="col" className="text-center">Product Quantity</th>
+                    <th scope="col">Product Price</th>
+                    <th scope="col">Total Price</th>
+                    <th scope="col" className="text-center">Delivered Quantity</th>
+                    <th scope="col">Delivery Status</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedOrderForProducts.orderdetails.map((product, index) => (
                     <tr key={index}>
+                      <td>{product.id}</td>
+                      <td>{product.order}</td>
                       <td>{product.display_product_name}</td>
-                      <td>{product.productquantity}</td>
-                      <td>{product.delivered_quantity}</td>
+                      <td className="text-center">{product.productquantity}</td>
+                      <td>₹{parseFloat(product.productprice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td>₹{parseFloat(product.total_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td className="text-center">{product.delivered_quantity}</td>
+                      <td>
+                        <span className={`badge ${getDeliveryStatusBadgeClass(product.deliverystatus)}`}>
+                          {product.deliverystatus}
+                        </span>
+                      </td>
                       <td>
                         <div className="hstack gap-2 fs-15">
                           <button
@@ -925,14 +1153,24 @@ const OrderList = () => {
       {/* Edit Product Modal */}
       <Modal show={showEditProductModal} onHide={handleCloseEditProductModal} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Edit Product</Modal.Title>
+          <Modal.Title>Edit Product Details</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
           {success && <Alert variant="success">Product updated successfully!</Alert>}
           <Form onSubmit={handleEditProduct}>
             <Row>
-              <Col md={12} className="mb-2">
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">ID</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={selectedProduct?.id || ''}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+              <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Order ID</Form.Label>
                 <Form.Control
                   type="text"
@@ -954,6 +1192,8 @@ const OrderList = () => {
                     placeholder="Search for a product..."
                     className={`form-control form-control-sm ${validationErrors.product_name ? 'is-invalid' : ''}`}
                     required
+                    disabled
+                    readOnly
                   />
                   {showProductList && filteredProducts.length > 0 && (
                     <ListGroup className="position-absolute w-100" style={{ zIndex: 1000 }}>
@@ -977,7 +1217,29 @@ const OrderList = () => {
             </Row>
             <Row>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Quantity</Form.Label>
+                <Form.Label className="form-label small">Product Price</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={`₹${parseFloat(selectedProduct?.productprice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Total Price</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={`₹${parseFloat(selectedProduct?.total_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Product Quantity</Form.Label>
                 <Form.Control
                   type="number"
                   name="productquantity"
@@ -1005,6 +1267,18 @@ const OrderList = () => {
                 {validationErrors.delivered_quantity && (
                   <div className="invalid-feedback">{validationErrors.delivered_quantity}</div>
                 )}
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Delivery Status</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={selectedProduct?.deliverystatus || ''}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
               </Col>
             </Row>
             <div className="text-end mt-3">
@@ -1045,6 +1319,31 @@ const OrderList = () => {
           }
           .list-group-item:hover {
             background-color: #f8f9fa;
+          }
+          .badge {
+            padding: 0.5em 0.75em;
+            font-weight: 500;
+            border-radius: 4px;
+          }
+          .bg-success-transparent {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+          }
+          .bg-warning-transparent {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+          }
+          .bg-info-transparent {
+            background-color: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+          }
+          .bg-danger-transparent {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+          }
+          .bg-secondary-transparent {
+            background-color: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
           }
         `}
       </style>
