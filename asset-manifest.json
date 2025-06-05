@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/Vivionix-SAP-syatem/static/css/main.c135f678.css",
-    "main.js": "/Vivionix-SAP-syatem/static/js/main.48fa1184.js",
+    "main.js": "/Vivionix-SAP-syatem/static/js/main.d52d4445.js",
     "static/js/206.29721480.chunk.js": "/Vivionix-SAP-syatem/static/js/206.29721480.chunk.js",
     "static/media/remixicon.svg?t=1734404658139": "/Vivionix-SAP-syatem/static/media/remixicon.df9902a6df13645438e1.svg",
     "static/media/remixicon.eot?t=1734404658139": "/Vivionix-SAP-syatem/static/media/remixicon.29066d810a74e994be27.eot",
@@ -14,6 +14,6 @@
   },
   "entrypoints": [
     "static/css/main.c135f678.css",
-    "static/js/main.48fa1184.js"
+    "static/js/main.d52d4445.js"
   ]
 }
