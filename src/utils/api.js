@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// const API_URL = 'http://192.168.1.8:8000';
+
 const API_URL = 'https://my.vivionix.com';
 const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
 

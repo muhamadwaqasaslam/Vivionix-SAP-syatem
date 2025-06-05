@@ -21,14 +21,14 @@ const CustomerRegistrationForm = () => {
         return userData;
       }
 
-      // Fallback if no user data found
+      
       return {
         employee_name: 'default_user',
-        employee_id: null // Assuming ID might be null if not logged in
+        employee_id: null 
       };
     } catch (error) {
       console.error('Error getting user info:', error);
-      // Return fallback on error
+
       return {
         employee_name: 'error_user',
         employee_id: null

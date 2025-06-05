@@ -32,6 +32,7 @@ import ProductRegistration from "./components/registration/ProductRegistrationFo
 import VendorRegistration from "./components/registration/VendorRegistrationForm";
 import RepresentativeRegistration from "./components/registration/RepresentativeRegistrationForm";
 import CustomerRepresentativeForm from "./components/registration/CustomerRepresentativeForm";
+import OrderCreate from "./components/registration/OrderCreate";
 
 // Tables
 import EmployeeTable from './components/Table/EmployeeTable';
@@ -40,6 +41,7 @@ import ProductTable from './components/Table/ProductTable';
 import VendorTable from './components/Table/VendorTable';
 import RepresentativeTable from './components/Table/RepresentativeTable';
 import CustomerRepresentativeTable from './components/Table/CustomerRepresentativeTable';
+import OrderList from './components/Table/OrderList';
 
 // Store Components
 import StockList from "./components/Table/StockList";
@@ -186,6 +188,10 @@ const HomePage = () => {
         return <CustomerRepresentativeForm />;
       case "Customer Representative Table":
         return <CustomerRepresentativeTable />;
+      case "Order Create":
+        return <OrderCreate />;
+      case "Order List":
+        return <OrderList />;
       default:
         return <Dashboard />;
     }
@@ -416,6 +422,32 @@ const HomePage = () => {
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Order Detail Table")}>
                 <Link to="/home/order-detail-table" className="sidebar-link">ODR Table</Link>
+              </div>
+            </div>
+          )}
+
+
+          {/* Order Section */}
+          <div className="sidebar-item" onClick={() => toggleDropdown("Order")}>
+            <FaStore size={14} />
+            {!isSidebarCollapsed && <span className="items">Order </span>}
+            {!isSidebarCollapsed && (
+              <span style={{ marginLeft: "62px" }}>
+                {activeDropdown === "Order" ? (
+                  <FaChevronDown className="dropdown-icon" />
+                ) : (
+                  <FaChevronRight className="dropdown-icon" />
+                )}
+              </span>
+            )}
+          </div>
+          {activeDropdown === "Order" && (
+            <div className="sidebar-submenu">
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Order Create")}>
+                <Link to="/home/order-create" className="sidebar-link">Order Create</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Order List")}>
+                <Link to="/home/order-list" className="sidebar-link">Order List</Link>
               </div>
             </div>
           )}

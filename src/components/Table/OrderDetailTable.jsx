@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Row, Col, Form, Button, Modal, Table, Alert } from 'react-bootstrap';
+import { Card, Row, Col, Form, Button, Modal, Table, Alert, ListGroup } from 'react-bootstrap';
 import './EmployeeTable.css';
 import api from '../../utils/api';
 import { RiFilter3Line, RiRefreshLine } from 'react-icons/ri';
@@ -13,12 +13,15 @@ const OrderDetailTable = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
   const [editForm, setEditForm] = useState({
+    product_id: "",
     product_name: "",
     productquantity: "",
     order: "",
-    delivered_quantity: ""
+    delivered_quantity: "",
+    productprice: "",
+    total_price: "",
+    deliverystatus: ""
   });
-  const [orders, setOrders] = useState([]);
   const itemsPerPage = 10;
   const [showSearch, setShowSearch] = useState(false);
   const [orderDetailIdSearch, setOrderDetailIdSearch] = useState("");
@@ -27,12 +30,20 @@ const OrderDetailTable = () => {
     order: ""
   });
   const filterFormRef = useRef(null);
-  const [validationErrors, setValidationErrors] = useState({});
   const [success, setSuccess] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [showProductList, setShowProductList] = useState(false);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [availableProducts, setAvailableProducts] = useState([]);
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const [showOrderList, setShowOrderList] = useState(false);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  const [orders, setOrders] = useState([]);
 
   useEffect(() => {
     fetchOrderDetails();
+    fetchProducts();
     fetchOrders();
   }, []);
 
@@ -51,9 +62,20 @@ const OrderDetailTable = () => {
     }
   };
 
+  const fetchProducts = async () => {
+    try {
+      const response = await api.get('/products/list_all/');
+      if (response.data) {
+        setAvailableProducts(response.data);
+      }
+    } catch (err) {
+      setError('Failed to fetch products');
+    }
+  };
+
   const fetchOrders = async () => {
     try {
-      const response = await api.get('/orders/order/list/');
+      const response = await api.get('/orders/orders/');
       if (response.data) {
         setOrders(response.data);
       }
@@ -65,11 +87,22 @@ const OrderDetailTable = () => {
   const handleShowEditModal = (orderDetail) => {
     setSelectedOrderDetail(orderDetail);
     setEditForm({
-      product_name: orderDetail.product_name,
+      product_id: orderDetail.product_id,
+      product_name: orderDetail.display_product_name,
       productquantity: orderDetail.productquantity,
       order: orderDetail.order,
-      delivered_quantity: orderDetail.delivered_quantity
+      delivered_quantity: orderDetail.delivered_quantity,
+      productprice: orderDetail.productprice,
+      total_price: orderDetail.total_price,
+      deliverystatus: orderDetail.deliverystatus
     });
+    setProductSearchTerm(orderDetail.display_product_name);
+    const selectedOrder = orders.find(order => order.order_id === orderDetail.order);
+    if (selectedOrder) {
+      setOrderSearchTerm(`${selectedOrder.order_id} - ${selectedOrder.customer_name}`);
+    } else {
+      setOrderSearchTerm(orderDetail.order);
+    }
     setShowEditModal(true);
   };
 
@@ -77,11 +110,19 @@ const OrderDetailTable = () => {
     setShowEditModal(false);
     setSelectedOrderDetail(null);
     setEditForm({
+      product_id: "",
       product_name: "",
       productquantity: "",
       order: "",
-      delivered_quantity: ""
+      delivered_quantity: "",
+      productprice: "",
+      total_price: "",
+      deliverystatus: ""
     });
+    setProductSearchTerm('');
+    setOrderSearchTerm('');
+    setShowProductList(false);
+    setShowOrderList(false);
   };
 
   const handleEditFormChange = (e) => {
@@ -126,15 +167,77 @@ const OrderDetailTable = () => {
     setShowSearch(false);
   };
 
+  const handleProductSearch = (e) => {
+    const value = e.target.value;
+    setProductSearchTerm(value);
+    setShowProductList(true);
+
+    if (value.trim() === '') {
+      setFilteredProducts([]);
+      return;
+    }
+
+    const filtered = availableProducts.filter(product =>
+      product.product_name.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredProducts(filtered);
+  };
+
+  const handleProductSelect = (product) => {
+    setEditForm(prev => ({
+      ...prev,
+      product_id: product.id,
+      product_name: product.product_name
+    }));
+    setProductSearchTerm(product.product_name);
+    setShowProductList(false);
+  };
+
+  const handleOrderSearch = (e) => {
+    const value = e.target.value;
+    setOrderSearchTerm(value);
+    setShowOrderList(true);
+
+    if (value.trim() === '') {
+      setFilteredOrders([]);
+      return;
+    }
+
+    const filtered = orders.filter(order =>
+      order.order_id.toString().toLowerCase().includes(value.toLowerCase()) ||
+      order.customer_name.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredOrders(filtered);
+  };
+
+  const handleOrderSelect = (order) => {
+    setEditForm(prev => ({
+      ...prev,
+      order: order.order_id
+    }));
+    setOrderSearchTerm(`${order.order_id} - ${order.customer_name}`);
+    setShowOrderList(false);
+  };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
+  
+      const payload = {
+       
+        product_name: editForm.product_name,
+        productquantity: parseInt(editForm.productquantity),
+        order: editForm.order,
+        delivered_quantity: parseInt(editForm.delivered_quantity),
+      };
+    
+  
       const response = await api.put(
-        `/orders/ordersdetail/update/${selectedOrderDetail.id}/`,
-        editForm
+        `/orders/ordersdetail/update/${selectedOrderDetail.id}`,
+        payload
       );
-
+  
       if (response.data) {
         setSuccess(true);
         setOrderDetails(prevDetails =>
@@ -152,13 +255,14 @@ const OrderDetailTable = () => {
       setLoading(false);
     }
   };
+  
 
   const handleDeleteOrderDetail = async (orderDetailId) => {
     if (!window.confirm("Are you sure you want to delete this order detail?")) return;
 
     try {
       setLoading(true);
-      const response = await api.delete(`/orders/ordersdetail/delete/${orderDetailId}/`);
+      const response = await api.delete(`/orders/ordersdetail/delete/${orderDetailId}`);
 
       if (response.status === 200 || response.status === 204) {
         setOrderDetails((prevDetails) => prevDetails.filter(d => d.id !== orderDetailId));
@@ -202,6 +306,21 @@ const OrderDetailTable = () => {
       setError(err.response?.data?.detail || err.message || 'Failed to refresh data');
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const getDeliveryStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'delivered':
+        return 'bg-success-transparent';
+      case 'undelivered':
+        return 'bg-warning-transparent';
+      case 'in_transit':
+        return 'bg-info-transparent';
+      case 'failed':
+        return 'bg-danger-transparent';
+      default:
+        return 'bg-secondary-transparent';
     }
   };
 
@@ -308,25 +427,35 @@ const OrderDetailTable = () => {
             <tr>
               <th scope="col">ID</th>
               <th scope="col">Product Name</th>
-              <th scope="col">Product Quantity</th>
+              <th scope="col" className="text-center">Product Quantity</th>
+              <th scope="col">Product Price</th>
+              <th scope="col">Total Price</th>
               <th scope="col">Order</th>
-              <th scope="col">Delivered Quantity</th>
+              <th scope="col" className="text-center">Delivered Quantity</th>
+              <th scope="col">Delivery Status</th>
               <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedOrderDetails.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center' }}>No order details found</td>
+                <td colSpan="9" style={{ textAlign: 'center' }}>No order details found</td>
               </tr>
             ) : (
               paginatedOrderDetails.map((detail) => (
                 <tr key={detail.id}>
                   <td>{detail.id}</td>
-                  <td>{detail.product_name}</td>
-                  <td>{detail.productquantity}</td>
+                  <td>{detail.display_product_name}</td>
+                  <td className='text-center'>{detail.productquantity}</td>
+                  <td>{parseFloat(detail.productprice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td>{parseFloat(detail.total_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                   <td>{detail.order}</td>
-                  <td>{detail.delivered_quantity}</td>
+                  <td className="text-center">{detail.delivered_quantity}</td>
+                  <td>
+                    <span className={`badge ${getDeliveryStatusBadgeClass(detail.deliverystatus)}`}>
+                      {detail.deliverystatus}
+                    </span>
+                  </td>
                   <td>
                     <div className="hstack gap-2 fs-15">
                       <button
@@ -401,15 +530,30 @@ const OrderDetailTable = () => {
             <Row>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Product Name</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="product_name"
-                  value={editForm.product_name}
-                  onChange={handleEditFormChange}
-                  className="form-control form-control-sm"
-                  required
-                  minLength={1}
-                />
+                <div className="position-relative">
+                  <Form.Control
+                    type="text"
+                    value={productSearchTerm}
+                    onChange={handleProductSearch}
+                    placeholder="Search for a product..."
+                    className="form-control form-control-sm"
+                    required
+                  />
+                  {showProductList && filteredProducts.length > 0 && (
+                    <ListGroup className="position-absolute w-100" style={{ zIndex: 1000 }}>
+                      {filteredProducts.map((product) => (
+                        <ListGroup.Item
+                          key={product.id}
+                          action
+                          onClick={() => handleProductSelect(product)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {product.product_name}
+                        </ListGroup.Item>
+                      ))}
+                    </ListGroup>
+                  )}
+                </div>
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Product Quantity</Form.Label>
@@ -426,20 +570,54 @@ const OrderDetailTable = () => {
             </Row>
             <Row>
               <Col md={6} className="mb-2">
-                <Form.Label className="form-label small">Order</Form.Label>
-                <Form.Select
-                  name="order"
-                  value={editForm.order}
+                <Form.Label className="form-label small">Product Price</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="productprice"
+                  value={editForm.productprice}
                   onChange={handleEditFormChange}
                   className="form-control form-control-sm"
-                >
-                  <option value="">Select Order</option>
-                  {orders.map((order) => (
-                    <option key={order.id} value={order.id}>
-                      {order.id}
-                    </option>
-                  ))}
-                </Form.Select>
+                  disabled
+                  readOnly
+                />
+              </Col>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Total Price</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={parseFloat(editForm.total_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Order</Form.Label>
+                <div className="position-relative">
+                  <Form.Control
+                    type="text"
+                    value={orderSearchTerm}
+                    onChange={handleOrderSearch}
+                    placeholder="Search by Order ID or Customer Name..."
+                    className="form-control form-control-sm"
+                  />
+                  {showOrderList && filteredOrders.length > 0 && (
+                    <ListGroup className="position-absolute w-100" style={{ zIndex: 1000 }}>
+                      {filteredOrders.map((order) => (
+                        <ListGroup.Item
+                          key={order.order_id}
+                          action
+                          onClick={() => handleOrderSelect(order)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {order.order_id} - {order.customer_name}
+                        </ListGroup.Item>
+                      ))}
+                    </ListGroup>
+                  )}
+                </div>
               </Col>
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Delivered Quantity</Form.Label>
@@ -451,6 +629,20 @@ const OrderDetailTable = () => {
                   className="form-control form-control-sm"
                   min={0}
                   max={4294967295}
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6} className="mb-2">
+                <Form.Label className="form-label small">Delivery Status</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="deliverystatus"
+                  value={editForm.deliverystatus}
+                  onChange={handleEditFormChange}
+                  className="form-control form-control-sm"
+                  disabled
+                  readOnly
                 />
               </Col>
             </Row>
@@ -475,6 +667,53 @@ const OrderDetailTable = () => {
             to {
               transform: rotate(360deg);
             }
+          }
+          .position-relative {
+            position: relative;
+          }
+          .position-absolute {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .list-group-item {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.5rem;
+            cursor: pointer;
+          }
+          .list-group-item:hover {
+            background-color: #f8f9fa;
+          }
+          .badge {
+            padding: 0.5em 0.75em;
+            font-weight: 500;
+            border-radius: 4px;
+          }
+          .bg-success-transparent {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+          }
+          .bg-warning-transparent {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+          }
+          .bg-info-transparent {
+            background-color: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+          }
+          .bg-danger-transparent {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+          }
+          .bg-secondary-transparent {
+            background-color: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
           }
         `}
       </style>
