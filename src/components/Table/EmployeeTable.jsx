@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import {Toast } from 'react-bootstrap';
+import React, { useState, useEffect, useRef } from 'react';
+import {Toast, Button } from 'react-bootstrap';
 import './EmployeeTable.css';
 import api from '../../utils/api';
+import { RiFilter3Line, RiRefreshLine } from 'react-icons/ri';
 
 const EmployeeTable = () => {
   const [employees, setEmployees] = useState([]);
@@ -13,6 +14,7 @@ const EmployeeTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
@@ -35,6 +37,15 @@ const EmployeeTable = () => {
     type: 'success' // 'success' or 'error'
   });
   const itemsPerPage = 10;
+  const [showSearch, setShowSearch] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filterFields, setFilterFields] = useState({
+    department: '',
+    role: '',
+    name: '',
+    username: ''
+  });
+  const filterFormRef = useRef(null);
 
   // Function to get user info from session or local storage
   const getUserInfo = () => {
@@ -108,6 +119,7 @@ const EmployeeTable = () => {
         setLoading(true);
         const response = await api.get('/employee/employees/list');
         setEmployees(response.data);
+        setFilteredEmployees(response.data);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -118,6 +130,20 @@ const EmployeeTable = () => {
     fetchEmployees();
   }, []);
 
+  // Add click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showSearch && filterFormRef.current && !filterFormRef.current.contains(event.target)) {
+        setShowSearch(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSearch]);
+
   // Handle search
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -125,7 +151,7 @@ const EmployeeTable = () => {
   };
 
   // Filter employees based on search term
-  const filteredEmployees = employees.filter(employee => {
+  const searchFilteredEmployees = filteredEmployees.filter(employee => {
     const searchLower = searchTerm.toLowerCase();
     return (
       employee.first_name.toLowerCase().includes(searchLower) ||
@@ -137,10 +163,10 @@ const EmployeeTable = () => {
   });
 
   // Calculate pagination
-  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const totalPages = Math.ceil(searchFilteredEmployees.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentEmployees = filteredEmployees.slice(startIndex, endIndex);
+  const currentEmployees = searchFilteredEmployees.slice(startIndex, endIndex);
 
   // Handle page change
   const handlePageChange = (page) => {
@@ -337,6 +363,75 @@ const EmployeeTable = () => {
     minWidth: '300px'
   };
 
+  const handleFilterIconClick = () => {
+    setShowSearch((prev) => !prev);
+    if (!showSearch) {
+      setFilterFields({ department: '', role: '', name: '', username: '' });
+      setFilteredEmployees(employees);
+    }
+  };
+
+  const handleFilterFieldChange = (e) => {
+    const { name, value } = e.target;
+    setFilterFields((prev) => ({ ...prev, [name]: value }));
+
+    const newFilters = { ...filterFields, [name]: value };
+    const matched = employees.filter((employee) =>
+      (!newFilters.department || (employee.department_name && employee.department_name.toLowerCase().includes(newFilters.department.toLowerCase()))) &&
+      (!newFilters.role || (employee.role_name && employee.role_name.toLowerCase().includes(newFilters.role.toLowerCase()))) &&
+      (!newFilters.name || (
+        (employee.first_name && employee.first_name.toLowerCase().includes(newFilters.name.toLowerCase())) ||
+        (employee.last_name && employee.last_name.toLowerCase().includes(newFilters.name.toLowerCase()))
+      )) &&
+      (!newFilters.username || (employee.username && employee.username.toLowerCase().includes(newFilters.username.toLowerCase())))
+    );
+    setFilteredEmployees(matched);
+  };
+
+  const handleApplySearch = () => {
+    const { department, role, name, username } = filterFields;
+    if (!department && !role && !name && !username) {
+      setFilteredEmployees(employees);
+    } else {
+      const matched = employees.filter((employee) =>
+        (!department || (employee.department_name && employee.department_name.toLowerCase().includes(department.toLowerCase()))) &&
+        (!role || (employee.role_name && employee.role_name.toLowerCase().includes(role.toLowerCase()))) &&
+        (!name || (
+          (employee.first_name && employee.first_name.toLowerCase().includes(name.toLowerCase())) ||
+          (employee.last_name && employee.last_name.toLowerCase().includes(name.toLowerCase()))
+        )) &&
+        (!username || (employee.username && employee.username.toLowerCase().includes(username.toLowerCase())))
+      );
+      setFilteredEmployees(matched);
+    }
+    setShowSearch(false);
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      const response = await api.get('/employee/employees/list');
+      if (response.data) {
+        setEmployees(response.data);
+        setFilteredEmployees(response.data);
+        setNotification({
+          show: true,
+          message: 'Employee list refreshed successfully!',
+          type: 'success'
+        });
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to refresh data');
+      setNotification({
+        show: true,
+        message: 'Error refreshing employee list',
+        type: 'error'
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
@@ -369,14 +464,98 @@ const EmployeeTable = () => {
 
       <h2 className="table-heading">Employee Management</h2>
       <div className="table-header">
-        <div className="search-container">
+        <div className="search-container" style={{
+          display: 'flex',
+          alignItems: 'center',
+          position: 'relative',
+          flexWrap: 'nowrap',
+          gap: '8px'
+        }}>
           <input
             type="text"
             className="form-control search-input"
             placeholder="Search employees..."
             value={searchTerm}
             onChange={handleSearch}
+            style={{
+              marginRight: '8px',
+              '@media (max-width: 576px)': {
+                width: '100%',
+                marginRight: '0'
+              }
+            }}
           />
+          <Button
+            variant="outline-secondary"
+            onClick={handleFilterIconClick}
+            style={{
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <RiFilter3Line size={20} />
+          </Button>
+          <Button
+            variant="outline-secondary"
+            onClick={handleRefresh}
+            style={{
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Refresh Table"
+            disabled={isRefreshing}
+          >
+            <RiRefreshLine
+              size={20}
+              style={{
+                animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                transformOrigin: 'center'
+              }}
+            />
+          </Button>
+          {showSearch && (
+            <div className="filter-dropdown" ref={filterFormRef}>
+              <input
+                type="text"
+                name="name"
+                className="form-control search-input"
+                placeholder="Employee Name"
+                value={filterFields.name}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="username"
+                className="form-control search-input"
+                placeholder="Username"
+                value={filterFields.username}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="department"
+                className="form-control search-input"
+                placeholder="Department"
+                value={filterFields.department}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="role"
+                className="form-control search-input"
+                placeholder="Role"
+                value={filterFields.role}
+                onChange={handleFilterFieldChange}
+              />
+              <Button variant="primary" onClick={handleApplySearch} style={{ width: '100%' }}>
+                Apply
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -813,6 +992,34 @@ const EmployeeTable = () => {
           </div>
         </div>
       )}
+
+      <style>
+        {`
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+          .filter-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 200px;
+          }
+          .filter-dropdown input {
+            margin-bottom: 0.5rem;
+          }
+        `}
+      </style>
     </div>
   );
 };

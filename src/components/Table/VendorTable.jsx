@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RiFilter3Line } from 'react-icons/ri';
+import { RiFilter3Line, RiRefreshLine } from 'react-icons/ri';
 
 import { Row, Col, Form, Button, Modal, Alert } from 'react-bootstrap';
 import './EmployeeTable.css';
@@ -58,6 +58,8 @@ const VendorTable = () => {
   const [validationErrors, setValidationErrors] = useState({});
   const [registeredByName, setRegisteredByName] = useState("");
   const [success, setSuccess] = useState(false);
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchRepresentatives = async () => {
     try {
@@ -688,6 +690,26 @@ const VendorTable = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      const response = await api.get('/vendors/list_all/');
+      if (response.data) {
+        setVendors(response.data);
+        setFilteredVendors(response.data);
+        // Fetch representatives after getting vendors
+        await fetchRepresentatives();
+        setSuccess(true);
+        setError(null);
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to refresh data');
+      setSuccess(false);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
@@ -733,6 +755,26 @@ const VendorTable = () => {
             }}
           >
             <RiFilter3Line size={20} />
+          </Button>
+          <Button
+            variant="outline-secondary"
+            onClick={handleRefresh}
+            style={{
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Refresh Table"
+            disabled={isRefreshing}
+          >
+            <RiRefreshLine
+              size={20}
+              style={{
+                animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                transformOrigin: 'center'
+              }}
+            />
           </Button>
           {showSearch && (
             <div
@@ -1397,6 +1439,34 @@ const VendorTable = () => {
           </Form>
         </Modal.Body>
       </Modal>
+
+      <style>
+        {`
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+          .filter-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 200px;
+          }
+          .filter-dropdown input {
+            margin-bottom: 0.5rem;
+          }
+        `}
+      </style>
     </div>
   );
 };

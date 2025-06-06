@@ -753,7 +753,6 @@ body.dark-mode .table {
 
 body.dark-mode .table thead th {
     background-color: #1a1a1a;
-    color: #ffffff;
     border-bottom-color: #404040;
 }
 
@@ -768,6 +767,24 @@ body.dark-mode .table tbody tr:hover {
 
 body.dark-mode .table td {
     border-color: #404040;
+    color: #e0e0e0;
+}
+
+/* Very broad rule to try and force a dark background on table cells in dark mode */
+body.dark-mode td {
+  background-color: #2d2d2d !important;
+}
+
+body.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+    background-color: #2d2d2d;
+}
+
+body.dark-mode .table-striped tbody tr:nth-of-type(even) {
+    background-color: #3d3d3d;
+}
+
+body.dark-mode .table-hover tbody tr:hover {
+    background-color: #4d4d4d;
 }
 
 /* Dark mode styles for forms */

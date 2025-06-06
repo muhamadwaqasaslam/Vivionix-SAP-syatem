@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {  Row, Col, Form, Button, Modal, Alert } from 'react-bootstrap';
 import api from '../../utils/api';
 import './EmployeeTable.css';
 import Select from 'react-select';
+import { RiFilter3Line, RiRefreshLine } from 'react-icons/ri';
 
 const ProductTable = () => {
   const [products, setProducts] = useState([]);
@@ -35,6 +36,15 @@ const ProductTable = () => {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationVariant, setNotificationVariant] = useState('success');
   const [vendors, setVendors] = useState([]);
+  const [showSearch, setShowSearch] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filterFields, setFilterFields] = useState({
+    product_name: "",
+    reference_number: "",
+    vendor: "",
+    category: ""
+  });
+  const filterFormRef = useRef(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -302,6 +312,100 @@ const ProductTable = () => {
     setCurrentPage(page);
   };
 
+  // Add click outside handler
+  useEffect(() => {
+    if (!showSearch) return;
+    function handleClickOutside(event) {
+      if (filterFormRef.current && !filterFormRef.current.contains(event.target)) {
+        setShowSearch(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSearch]);
+
+  const handleFilterIconClick = () => {
+    setShowSearch((prev) => !prev);
+    if (!showSearch) {
+      setFilterFields({
+        product_name: "",
+        reference_number: "",
+        vendor: "",
+        category: ""
+      });
+      setFilteredProducts(products);
+    }
+  };
+
+  const handleFilterFieldChange = (e) => {
+    const { name, value } = e.target;
+    setFilterFields((prev) => ({ ...prev, [name]: value }));
+    
+    const newFilters = { ...filterFields, [name]: value };
+    const matched = products.filter((product) =>
+      (!newFilters.product_name || (product.product_name && product.product_name.toLowerCase().includes(newFilters.product_name.toLowerCase()))) &&
+      (!newFilters.reference_number || (product.reference_number && product.reference_number.toLowerCase().includes(newFilters.reference_number.toLowerCase()))) &&
+      (!newFilters.vendor || (product.vendor_display_name && product.vendor_display_name.toLowerCase().includes(newFilters.vendor.toLowerCase()))) &&
+      (!newFilters.category || (product.product_category && 
+        (Array.isArray(product.product_category) 
+          ? product.product_category.some(cat => cat.toLowerCase().includes(newFilters.category.toLowerCase()))
+          : product.product_category.toLowerCase().includes(newFilters.category.toLowerCase())
+        )
+      ))
+    );
+    setFilteredProducts(matched);
+  };
+
+  const handleApplySearch = () => {
+    const { product_name, reference_number, vendor, category } = filterFields;
+    if (!product_name && !reference_number && !vendor && !category) {
+      setFilteredProducts(products);
+    } else {
+      const matched = products.filter((product) =>
+        (!product_name || (product.product_name && product.product_name.toLowerCase().includes(product_name.toLowerCase()))) &&
+        (!reference_number || (product.reference_number && product.reference_number.toLowerCase().includes(reference_number.toLowerCase()))) &&
+        (!vendor || (product.vendor_display_name && product.vendor_display_name.toLowerCase().includes(vendor.toLowerCase()))) &&
+        (!category || (product.product_category && 
+          (Array.isArray(product.product_category) 
+            ? product.product_category.some(cat => cat.toLowerCase().includes(category.toLowerCase()))
+            : product.product_category.toLowerCase().includes(category.toLowerCase())
+          )
+        ))
+      );
+      setFilteredProducts(matched);
+    }
+    setShowSearch(false);
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      const response = await api.get('/products/list_all/');
+      const processedProducts = response.data.map(product => {
+        let categories = product.product_category;
+        if (typeof categories === 'string') {
+          try {
+            categories = categories.replace(/[[\]']/g, '').split(',').map(cat => cat.trim()).filter(Boolean);
+          } catch (e) {
+            console.error('Failed to parse product_category string:', categories, e);
+            categories = [];
+          }
+        } else if (!Array.isArray(categories)) {
+          categories = [];
+        }
+        return { ...product, product_category: categories, vendor_id: product.vendor_id };
+      });
+      setProducts(processedProducts);
+      setFilteredProducts(processedProducts);
+    } catch (err) {
+      console.error('Error refreshing products:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
@@ -325,14 +429,101 @@ const ProductTable = () => {
       </Alert>
 
       <div className="table-header">
-        <div className="search-container">
+        <div className="search-container" style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          position: 'relative',
+          flexWrap: 'nowrap',
+          gap: '8px'
+        }}>
           <input
             type="text"
             className="form-control search-input"
             placeholder="Search products..."
             value={searchTerm}
             onChange={handleSearch}
+            style={{
+              marginRight: '8px',
+              '@media (max-width: 576px)': {
+                width: '100%',
+                marginRight: '0'
+              }
+            }}
           />
+          <Button 
+            variant="outline-secondary" 
+            onClick={handleFilterIconClick} 
+            style={{ 
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <RiFilter3Line size={20} />
+          </Button>
+          <Button 
+            variant="outline-secondary" 
+            onClick={handleRefresh}
+            style={{ 
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Refresh Table"
+            disabled={isRefreshing}
+          >
+            <RiRefreshLine 
+              size={20} 
+              style={{ 
+                animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                transformOrigin: 'center'
+              }} 
+            />
+          </Button>
+          {showSearch && (
+            <div
+              ref={filterFormRef}
+              className="filter-dropdown"
+            >
+              <input
+                type="text"
+                name="product_name"
+                className="form-control search-input"
+                placeholder="Product Name"
+                value={filterFields.product_name}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="reference_number"
+                className="form-control search-input"
+                placeholder="Reference Number"
+                value={filterFields.reference_number}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="vendor"
+                className="form-control search-input"
+                placeholder="Vendor"
+                value={filterFields.vendor}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="category"
+                className="form-control search-input"
+                placeholder="Category"
+                value={filterFields.category}
+                onChange={handleFilterFieldChange}
+              />
+              <Button variant="primary" onClick={handleApplySearch} style={{ width: '100%' }}>
+                Apply
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -345,7 +536,7 @@ const ProductTable = () => {
               <th scope="col">Reference</th>
               <th scope="col">Pack Size</th>
               <th scope="col">Pack Price</th>
-              <th scope="col">Vendor</th>
+              <th scope="col">Registration Date</th>
               <th scope="col">Category</th>
               <th scope="col">Remarks</th>
               <th scope="col">Registered By</th>
@@ -374,7 +565,7 @@ const ProductTable = () => {
                 <td>{product.reference_number}</td>
                 <td>{product.packsize}</td>
                 <td>{product.packprice}</td>
-                <td>{product.vendor_display_name}</td>
+                <td>{new Date(product.reg_date).toLocaleDateString()}</td>
                 <td>
                   {Array.isArray(product.product_category) ? (
                     product.product_category.map((category, index) => (
@@ -389,7 +580,7 @@ const ProductTable = () => {
                   )}
                 </td>
                 <td>{product.remarks}</td>
-                <td>{product.registered_by_name}</td>
+                <td>{product.registered_by_name || "N/A"}</td>
                 <td>{product.Qualitycertifications}</td>
                 <td>
                   {product.brocure ? (
@@ -769,6 +960,34 @@ const ProductTable = () => {
           </Form>
         </Modal.Body>
       </Modal>
+
+      <style>
+        {`
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+          .filter-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 200px;
+          }
+          .filter-dropdown input {
+            margin-bottom: 0.5rem;
+          }
+        `}
+      </style>
     </div>
   );
 };

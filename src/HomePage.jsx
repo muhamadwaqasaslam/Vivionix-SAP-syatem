@@ -33,7 +33,7 @@ import VendorRegistration from "./components/registration/VendorRegistrationForm
 import RepresentativeRegistration from "./components/registration/RepresentativeRegistrationForm";
 import CustomerRepresentativeForm from "./components/registration/CustomerRepresentativeForm";
 import OrderCreate from "./components/registration/OrderCreate";
-
+import InvoiceRegistration from "./components/registration/InvoiceRegistrationForm";
 // Tables
 import EmployeeTable from './components/Table/EmployeeTable';
 import CustomerTable from './components/Table/CustomerTable';
@@ -42,7 +42,7 @@ import VendorTable from './components/Table/VendorTable';
 import RepresentativeTable from './components/Table/RepresentativeTable';
 import CustomerRepresentativeTable from './components/Table/CustomerRepresentativeTable';
 import OrderList from './components/Table/OrderList';
-
+import InvoiceTable from './components/Table/InvoiceTable';
 // Store Components
 import StockList from "./components/Table/StockList";
 import StockLedger from "./components/Table/StockLedger";
@@ -90,7 +90,7 @@ const HomePage = () => {
       console.log('Clicked element:', event.target);
       console.log('Is user circle clicked:', event.target.closest('.user-circle'));
       console.log('Is dropdown clicked:', event.target.closest('.session-dropdown'));
-      
+
       if (dropdownOpen && !event.target.closest('.user-circle') && !event.target.closest('.session-dropdown')) {
         console.log('Closing dropdown - clicked outside');
         setDropdownOpen(false);
@@ -192,6 +192,10 @@ const HomePage = () => {
         return <OrderCreate />;
       case "Order List":
         return <OrderList />;
+      case "Invoice Registration":
+        return <InvoiceRegistration />;
+      case "Invoice Table":
+        return <InvoiceTable />;
       default:
         return <Dashboard />;
     }
@@ -238,7 +242,7 @@ const HomePage = () => {
           </div>
 
           {!isSidebarCollapsed && <h4 className="main-items">REGISTRATION</h4>}
-          
+
           {/* Employee Section */}
           <div className="sidebar-item" onClick={() => toggleDropdown("Employee")}>
             <FaUser size={14} />
@@ -260,12 +264,6 @@ const HomePage = () => {
               </div>
               <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Table")}>
                 <Link to="/home/employee-table" className="sidebar-link">Employee List</Link>
-              </div>
-              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Department Role")}>
-                <Link to="/home/employee-department-role" className="sidebar-link">Assign Department Role</Link>
-              </div>
-              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Employee Department Role List")}>
-                <Link to="/home/employee-department-role-list" className="sidebar-link">Department Role List</Link>
               </div>
             </div>
           )}
@@ -535,6 +533,32 @@ const HomePage = () => {
               </div>
             </div>
           )}
+
+          {/* Invoice Section */}
+          <div className="sidebar-item" onClick={() => toggleDropdown("Invoice")}>
+            <FaBox size={14} />
+            {!isSidebarCollapsed && <span className="items">Invoice</span>}
+            {!isSidebarCollapsed && (
+              <span style={{ marginLeft: "auto" }}>
+                {activeDropdown === "Invoice" ? (
+                  <FaChevronDown className="dropdown-icon" />
+                ) : (
+                  <FaChevronRight className="dropdown-icon" />
+                )}
+              </span>
+            )}
+          </div>
+          {activeDropdown === "Invoice" && (
+            <div className="sidebar-submenu">
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Invoice Registration")}>
+                <Link to="/home/Invoice-registration" className="sidebar-link">Invoice Form</Link>
+              </div>
+              <div className="sidebar-subitem" onClick={() => handleMenuItemClick("Invoice Table")}>
+                <Link to="/home/Invoice-table" className="sidebar-link">Invoice Table</Link>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -609,7 +633,7 @@ const HomePage = () => {
                 </div>
 
                 <div className="dropdown-session-item logout" onClick={handleLogout}>
-                  <FaSignOutAlt className="dropdown-session-icon" /> 
+                  <FaSignOutAlt className="dropdown-session-icon" />
                   <span>Sign Out</span>
                 </div>
               </div>
