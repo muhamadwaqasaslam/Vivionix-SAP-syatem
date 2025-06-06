@@ -22,7 +22,6 @@ const OrderList = () => {
     registered_by_name: '',
     instructions: ''
   });
-  const [customerMap, setCustomerMap] = useState({});
   const itemsPerPage = 10;
   const [showSearch, setShowSearch] = useState(false);
   const [orderIdSearch, setOrderIdSearch] = useState('');
@@ -90,22 +89,27 @@ const OrderList = () => {
       setLoading(true);
       const response = await api.get('/orders/orders/');
       if (response.data) {
+        console.log('Raw orders data:', response.data); // Debug log
         // Get user info for each order
         const ordersWithUserInfo = await Promise.all(response.data.map(async (order) => {
           try {
-            const userResponse = await api.get(`/employees/employee/${order.registered_by_id}/`);
+            console.log('Processing order:', order); // Debug log
+            // Fetch employee details using registered_by
+            const employeeResponse = await api.get(`/employees/employee/${order.registered_by}/`);
+            console.log('Employee response:', employeeResponse.data); // Debug log
             return {
               ...order,
-              registered_by_name: userResponse.data.employee_name || 'Unknown'
+              employee_name: employeeResponse.data.employee_name || 'Unknown'
             };
           } catch (err) {
-            console.error('Error fetching user info:', err);
+            console.error('Error fetching employee info:', err);
             return {
               ...order,
-              registered_by_name: 'Unknown'
+              employee_name: 'Unknown'
             };
           }
         }));
+        console.log('Processed orders:', ordersWithUserInfo); // Debug log
         setOrders(ordersWithUserInfo);
         setFilteredOrders(ordersWithUserInfo);
       }
@@ -221,13 +225,16 @@ const OrderList = () => {
       setLoading(true);
       console.log('Updating order:', selectedOrder.order_id);
 
+      const userInfo = getUserInfo();
+      let registeredById = userInfo.employee_id || userInfo.id;
+
       // Prepare payload according to Swagger documentation
       const updatePayload = {
         data: {
           customers: editForm.customer,
           order_delivery: editForm.order_delivery,
           GST: editForm.GST,
-          registered_by_id: editForm.registered_by_id,
+          registered_by: registeredById,
           orderdetails: selectedOrder.orderdetails.map(detail => ({
             product_name: detail.product_name,
             productquantity: parseInt(detail.productquantity) || 0,
@@ -259,7 +266,8 @@ const OrderList = () => {
                 customer_name: editForm.customer,
                 order_delivery: editForm.order_delivery,
                 GST: editForm.GST,
-                registered_by_id: editForm.registered_by_id,
+                registered_by: registeredById,
+                registered_by_name: userInfo.employee_name,
                 orderdetails: updatePayload.data.orderdetails
               }
               : order
@@ -739,7 +747,7 @@ const OrderList = () => {
                       {order.deliverystatus}
                     </span>
                   </td>
-                  <td>{order.registered_by_name}</td>
+                  <td>{order.registered_by_id}</td>
                   <td>{order.instructions}</td>
                   <td>
                     {order.orderdetails && order.orderdetails.length > 0 ? (
@@ -850,13 +858,13 @@ const OrderList = () => {
               <Col md={6} className="mb-2">
                 <Form.Label className="form-label small">Customer</Form.Label>
                 <div className="position-relative">
-                  <Form.Control
-                    type="text"
+                <Form.Control
+                  type="text"
                     value={customerSearchTerm}
                     onChange={handleCustomerSearch}
                     placeholder="Search for a customer..."
-                    className="form-control form-control-sm"
-                    required
+                  className="form-control form-control-sm"
+                  required
                   />
                   {showCustomerList && filteredCustomers.length > 0 && (
                     <ListGroup className="position-absolute w-100" style={{ zIndex: 1000 }}>

@@ -31,7 +31,7 @@ const CustomerRepresentativeTable = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [representativeIdSearch, setRepresentativeIdSearch] = useState("");
   const [filterFields, setFilterFields] = useState({ 
-    name: "", 
+    Contact_person_name: "",
     email: "", 
     customer: "",
     registered_by: "" 
@@ -132,7 +132,7 @@ const CustomerRepresentativeTable = () => {
       qualification: representative.qualification,
       Contact_person_email: representative.Contact_person_email,
       Contact_person_number: representative.Contact_person_number,
-      customer: representative.Customer_name,
+      customer: representative.customer_name,
       CV: null
     });
     setShowEditModal(true);
@@ -166,7 +166,12 @@ const CustomerRepresentativeTable = () => {
   const handleFilterIconClick = () => {
     setShowSearch((prev) => !prev);
     if (!showSearch) {
-      setFilterFields({ name: "", email: "", customer: "", registered_by: "" });
+      setFilterFields({ 
+        Contact_person_name: "",
+        email: "", 
+        customer: "", 
+        registered_by: "" 
+      });
       setFilteredRepresentatives(representatives);
     }
   };
@@ -177,24 +182,24 @@ const CustomerRepresentativeTable = () => {
     
     const newFilters = { ...filterFields, [name]: value };
     const matched = representatives.filter((representative) =>
-      (!newFilters.name || (representative.Contact_person_name && representative.Contact_person_name.toLowerCase().includes(newFilters.name.toLowerCase()))) &&
+      (!newFilters.Contact_person_name || (representative.Contact_person_name && representative.Contact_person_name.toLowerCase().includes(newFilters.Contact_person_name.toLowerCase()))) &&
       (!newFilters.email || (representative.Contact_person_email && representative.Contact_person_email.toLowerCase().includes(newFilters.email.toLowerCase()))) &&
-      (!newFilters.customer || (representative.Customer_name && representative.Customer_name.toLowerCase().includes(newFilters.customer.toLowerCase()))) &&
-      (!newFilters.registered_by || (representative.registered_by_name && representative.registered_by_name.toLowerCase().includes(newFilters.registered_by.toLowerCase())))
+      (!newFilters.customer || (representative.customer_name && representative.customer_name.toLowerCase().includes(newFilters.customer.toLowerCase()))) &&
+      (!newFilters.registered_by || (representative.registered_by && representative.registered_by.toLowerCase().includes(newFilters.registered_by.toLowerCase())))
     );
     setFilteredRepresentatives(matched);
   };
 
   const handleApplySearch = () => {
-    const { name, email, customer, registered_by } = filterFields;
-    if (!name && !email && !customer && !registered_by) {
+    const { Contact_person_name, email, customer, registered_by } = filterFields;
+    if (!Contact_person_name && !email && !customer && !registered_by) {
       setFilteredRepresentatives(representatives);
     } else {
       const matched = representatives.filter((representative) =>
-        (!name || (representative.Contact_person_name && representative.Contact_person_name.toLowerCase().includes(name.toLowerCase()))) &&
+        (!Contact_person_name || (representative.Contact_person_name && representative.Contact_person_name.toLowerCase().includes(Contact_person_name.toLowerCase()))) &&
         (!email || (representative.Contact_person_email && representative.Contact_person_email.toLowerCase().includes(email.toLowerCase()))) &&
-        (!customer || (representative.Customer_name && representative.Customer_name.toLowerCase().includes(customer.toLowerCase()))) &&
-        (!registered_by || (representative.registered_by_name && representative.registered_by_name.toLowerCase().includes(registered_by.toLowerCase())))
+        (!customer || (representative.customer_name && representative.customer_name.toLowerCase().includes(customer.toLowerCase()))) &&
+        (!registered_by || (representative.registered_by && representative.registered_by.toLowerCase().includes(registered_by.toLowerCase())))
       );
       setFilteredRepresentatives(matched);
     }
@@ -406,10 +411,10 @@ const CustomerRepresentativeTable = () => {
             >
               <input
                 type="text"
-                name="name"
+                name="Contact_person_name"
                 className="form-control search-input"
                 placeholder="Contact Person Name"
-                value={filterFields.name}
+                value={filterFields.Contact_person_name}
                 onChange={handleFilterFieldChange}
               />
               <input
@@ -478,8 +483,8 @@ const CustomerRepresentativeTable = () => {
                   <td>{representative.qualification || '-'}</td>
                   <td>{representative.Contact_person_email}</td>
                   <td>{representative.Contact_person_number}</td>
-                  <td>{getCustomerName(representative.Customer_name)}</td>
-                  <td>{representative.registered_by_name || '-'}</td>
+                  <td>{representative.customer_name}</td>
+                  <td>{representative.registered_by}</td>
                   <td>
                     {representative.CV ? (
                       <a 

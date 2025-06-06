@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {  Row, Col, Form, Button, Modal, Alert } from 'react-bootstrap';
+import { RiFilter3Line, RiRefreshLine } from 'react-icons/ri';
 import './EmployeeTable.css';
 import api from '../../utils/api';
 import PhoneInput from 'react-phone-input-2';
@@ -7,6 +8,7 @@ import 'react-phone-input-2/lib/style.css';
 
 const RepresentativeTable = () => {
   const [representatives, setRepresentatives] = useState([]);
+  const [filteredRepresentatives, setFilteredRepresentatives] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,6 +32,15 @@ const RepresentativeTable = () => {
   const itemsPerPage = 10;
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filterFields, setFilterFields] = useState({
+    name: '',
+    email: '',
+    vendor: '',
+    designation: ''
+  });
+  const filterFormRef = useRef(null);
 
   useEffect(() => {
     const fetchVendors = async () => {
@@ -120,6 +131,7 @@ const RepresentativeTable = () => {
         const response = await api.get('/vendors/representatives/');
         if (response.data) {
           setRepresentatives(response.data);
+          setFilteredRepresentatives(response.data);
         }
       } catch (err) {
         setError(err.response?.data?.detail || err.message || 'Failed to fetch representatives');
@@ -292,24 +304,94 @@ const RepresentativeTable = () => {
     }
   };
 
-  const filteredRepresentatives = representatives.filter(representative => {
+  const searchFilteredRepresentatives = filteredRepresentatives.filter(representative => {
     const searchLower = searchTerm.toLowerCase();
     return (
       representative.name.toLowerCase().includes(searchLower) ||
       representative.email.toLowerCase().includes(searchLower) ||
       representative.contact_number.includes(searchTerm) ||
-      representative.vendor.toLowerCase().includes(searchLower) ||
+      representative.vendor_name.toLowerCase().includes(searchLower) ||
       representative.deisgnation?.toLowerCase().includes(searchLower)
     );
   });
 
-  const totalPages = Math.ceil(filteredRepresentatives.length / itemsPerPage);
+  const totalPages = Math.ceil(searchFilteredRepresentatives.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentRepresentatives = filteredRepresentatives.slice(startIndex, endIndex);
+  const currentRepresentatives = searchFilteredRepresentatives.slice(startIndex, endIndex);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
+  };
+
+  // Add click outside handler
+  useEffect(() => {
+    if (!showSearch) return;
+    function handleClickOutside(event) {
+      if (filterFormRef.current && !filterFormRef.current.contains(event.target)) {
+        setShowSearch(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSearch]);
+
+  const handleFilterIconClick = () => {
+    setShowSearch((prev) => !prev);
+    if (!showSearch) {
+      setFilterFields({ name: '', email: '', vendor: '', designation: '' });
+    }
+  };
+
+  const handleFilterFieldChange = (e) => {
+    const { name, value } = e.target;
+    setFilterFields((prev) => ({ ...prev, [name]: value }));
+    
+    // Apply real-time filtering as user types
+    const newFilters = { ...filterFields, [name]: value };
+    const matched = representatives.filter((rep) =>
+      (!newFilters.name || (rep.name && rep.name.toLowerCase().includes(newFilters.name.toLowerCase()))) &&
+      (!newFilters.email || (rep.email && rep.email.toLowerCase().includes(newFilters.email.toLowerCase()))) &&
+      (!newFilters.vendor || (rep.vendor_name && rep.vendor_name.toLowerCase().includes(newFilters.vendor.toLowerCase()))) &&
+      (!newFilters.designation || (rep.deisgnation && rep.deisgnation.toLowerCase().includes(newFilters.designation.toLowerCase())))
+    );
+    setFilteredRepresentatives(matched);
+  };
+
+  const handleApplySearch = () => {
+    const { name, email, vendor, designation } = filterFields;
+    if (!name && !email && !vendor && !designation) {
+      setFilteredRepresentatives(representatives);
+    } else {
+      const matched = representatives.filter((rep) =>
+        (!name || (rep.name && rep.name.toLowerCase().includes(name.toLowerCase()))) &&
+        (!email || (rep.email && rep.email.toLowerCase().includes(email.toLowerCase()))) &&
+        (!vendor || (rep.vendor_name && rep.vendor_name.toLowerCase().includes(vendor.toLowerCase()))) &&
+        (!designation || (rep.deisgnation && rep.deisgnation.toLowerCase().includes(designation.toLowerCase())))
+      );
+      setFilteredRepresentatives(matched);
+    }
+    setShowSearch(false);
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      const response = await api.get('/vendors/representatives/');
+      if (response.data) {
+        setRepresentatives(response.data);
+        setFilteredRepresentatives(response.data);
+        setSuccess(true);
+        setError(null);
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to refresh data');
+      setSuccess(false);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (loading) {
@@ -325,14 +407,101 @@ const RepresentativeTable = () => {
       <h3 className="table-heading">Representative Management</h3>
       
       <div className="table-header">
-        <div className="search-container">
+        <div className="search-container" style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          position: 'relative',
+          flexWrap: 'nowrap',
+          gap: '8px'
+        }}>
           <input
             type="text"
             className="form-control search-input"
             placeholder="Search representatives..."
             value={searchTerm}
             onChange={handleSearch}
+            style={{
+              marginRight: '8px',
+              '@media (max-width: 576px)': {
+                width: '100%',
+                marginRight: '0'
+              }
+            }}
           />
+          <Button 
+            variant="outline-secondary" 
+            onClick={handleFilterIconClick} 
+            style={{ 
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <RiFilter3Line size={20} />
+          </Button>
+          <Button
+            variant="outline-secondary"
+            onClick={handleRefresh}
+            style={{
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Refresh Table"
+            disabled={isRefreshing}
+          >
+            <RiRefreshLine
+              size={20}
+              style={{
+                animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                transformOrigin: 'center'
+              }}
+            />
+          </Button>
+          {showSearch && (
+            <div
+              ref={filterFormRef}
+              className="filter-dropdown"
+            >
+              <input
+                type="text"
+                name="name"
+                className="form-control search-input"
+                placeholder="Name"
+                value={filterFields.name}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="email"
+                className="form-control search-input"
+                placeholder="Email"
+                value={filterFields.email}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="vendor"
+                className="form-control search-input"
+                placeholder="Vendor"
+                value={filterFields.vendor}
+                onChange={handleFilterFieldChange}
+              />
+              <input
+                type="text"
+                name="designation"
+                className="form-control search-input"
+                placeholder="Designation"
+                value={filterFields.designation}
+                onChange={handleFilterFieldChange}
+              />
+              <Button variant="primary" onClick={handleApplySearch} style={{ width: '100%' }}>
+                Apply
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -615,6 +784,34 @@ const RepresentativeTable = () => {
           </Form>
         </Modal.Body>
       </Modal>
+
+      <style>
+        {`
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+          .filter-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 200px;
+          }
+          .filter-dropdown input {
+            margin-bottom: 0.5rem;
+          }
+        `}
+      </style>
     </div>
   );
 };

@@ -5,6 +5,11 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+body.dark-mode .employee-table-container {
+  background: #2d2d2d;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 .table {
   margin-bottom: 0;
 }
@@ -18,12 +23,25 @@
   padding: 0.75rem;
 }
 
+body.dark-mode .table th {
+  background-color: #1a1a1a;
+  color: #ffffff;
+  border-bottom-color: #404040;
+}
+
 .table td {
   font-size: 0.875rem;
   padding: 0.75rem;
   vertical-align: middle;
   border-bottom: 1px solid #dee2e6;
 }
+
+body.dark-mode .table td {
+  color: #e0e0e0;
+  border-bottom-color: #404040;
+}
+
+/* Removed conflicting dark mode styles for table body rows */
 
 /* Avatar styles */
 .avatar {
@@ -291,9 +309,6 @@
   margin-bottom: 20px;
 }
 
-.search-container {
-  /* Remove fixed width to allow flexibility */
-}
 
 .search-input {
   border-radius: 20px;
@@ -418,7 +433,6 @@ input:disabled {
 
 .form-control {
   width: 100%;
-  padding: 0.5rem;
   border: 1px solid #ced4da;
   border-radius: 4px;
   font-size: 0.875rem;
